@@ -1,24 +1,35 @@
 [project]
 name = "oopsys-server"
 version = "0.1.0"
-description = "Add your description here"
+description = "oops, system crashed :)"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "alembic>=1.18.4",
+    "asyncpg>=0.31.0",
+    "dishka>=1.10.1",
+    "fastapi>=0.136.3",
+    "kitstructlog>=0.1.2",
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.14.1",
+    "sqlalchemy>=2.0.50",
+    "structlog>=25.5.0",
+    "uvicorn>=0.48.0",
+]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/app"]
+packages = ["src/oopsys_server"]
 
 [tool.bandit]
 exclude_dirs = ["tests", "examples"]
 skips = ["B105"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests/unit"]
+testpaths = ["tests/units"]
 addopts = "-p no:warnings"
 asyncio_mode = "auto"
 
@@ -33,39 +44,36 @@ exclude = ["tests", "examples"]
 select = ["ALL"]
 ignore = [
     "ARG", "ANN",
-    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "D205", "D400", "D415", "D419", "D200", "D203", "D211", "D212", "D417", "D401", "D413",
+    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
+    "D200", "D203", "D205", "D211", "D212", "D400", "D401", "D413", "D415", "D417", "D419",
     "COM812",
     "E501", "EM101", "EM102",
-    "RUF001", "RUF002", "RUF003", "RET505",
-    "TC001", "TRY003", "TRY300", "TRY301",
-    "PYI013", "PIE790", "PLR0913", "PT018",
+    "RUF001", "RUF002", "RUF003", "RUF006",
+    "RET505",
+    "TC001",
+    "TRY003", "TRY300", "TRY301", "TRY400",
+    "PYI013", "PYI036",
+    "PIE790",
+    "PLR0911", "PLR0913", "PLR0915", "PLR1704", "PLR2004",
+    "PT018",
     "G004",
     "INP001",
-    "UP007",
+    "UP007", "UP042",
     "A002",
     "ASYNC109",
     "BLE001",
     "C901",
     "DTZ003",
-    "FAST001",
-    "FAST002",
+    "FAST001", "FAST002",
     "FBT003",
     "PLC0415",
-    "PLR0911",
-    "PLR0915",
-    "PLR1704",
-    "PLR2004",
     "PLW0603",
-    "PYI036",
-    "RUF006",
     "S105",
-    "TRY400",
-    "UP042",
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["TID252", "PLR2004", "S101", "SLF001"]
-"examples/*" = ["T201"]
+"tests/**/*.py" = ["TID252", "PLR2004", "S101", "SLF001"]
+"examples/**/*.py" = ["T201"]
 
 [tool.ruff.lint.isort]
 no-lines-before = ["local-folder"]
