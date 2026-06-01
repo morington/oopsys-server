@@ -87,6 +87,12 @@ a:hover { text-decoration: underline; }
 .card .metric { font-size: 28px; font-weight: 680; letter-spacing: -0.5px; }
 .card .sub { color: var(--text-faint); font-size: 12px; }
 .section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-faint); margin: 26px 0 12px; font-weight: 600; }
+.section-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 26px 0 12px; }
+.section-bar .section-title { margin: 0; }
+
+.dismissible-row .row-dismiss { opacity: 0; transition: opacity 120ms ease; white-space: nowrap; }
+.dismissible-row:hover .row-dismiss { opacity: 1; }
+.btn.icon-dismiss { padding: 2px 8px; min-width: 28px; line-height: 1.2; font-size: 16px; }
 
 /* Tables */
 .table { width: 100%; border-collapse: collapse; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }

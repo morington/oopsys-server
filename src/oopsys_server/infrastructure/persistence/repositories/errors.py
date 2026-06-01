@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from oopsys_server.domain.enums import ErrorGroupStatus, Severity
@@ -79,6 +79,15 @@ class ErrorRepository:
 
     async def mark_notified(self, group: ErrorGroup, when: datetime | None = None) -> None:
         group.last_notified_at = when or utc_now()
+
+    async def delete_group(self, group_id: uuid.UUID) -> bool:
+        result = await self._session.execute(delete(ErrorGroup).where(ErrorGroup.id == group_id))
+        return result.rowcount > 0
+
+    async def delete_groups_for_agents(self, agent_ids: list[str]) -> None:
+        if not agent_ids:
+            return
+        await self._session.execute(delete(ErrorGroup).where(ErrorGroup.agent_id.in_(agent_ids)))
 
 
 class AgentFaultRepository:

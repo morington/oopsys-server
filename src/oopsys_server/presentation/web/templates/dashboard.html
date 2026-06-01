@@ -31,16 +31,30 @@
   </div>
 
   <div>
-    <div class="section-title">Последние уведомления</div>
+    <div class="section-bar">
+      <div class="section-title">Последние уведомления</div>
+      {% if notifications %}
+      <form method="post" action="/notifications/clear" onsubmit="return confirm('Удалить все уведомления?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <button class="btn sm danger" type="submit">Очистить все</button>
+      </form>
+      {% endif %}
+    </div>
     {% if notifications %}
     <div class="card scroll-panel">
       <table class="table" style="border:none">
         <tbody>
         {% for n in notifications %}
-          <tr>
+          <tr class="dismissible-row">
             <td style="width:90px"><span class="badge {% if n.severity.value == 'critical' %}crit{% else %}warn{% endif %} dot">{{ n.severity.value }}</span></td>
             <td><strong>{{ n.title }}</strong><div class="muted">{{ n.body }}</div></td>
             <td class="muted" style="width:130px">{{ n.created_at.strftime('%d.%m %H:%M') }}</td>
+            <td class="row-dismiss" style="width:44px;text-align:right">
+              <form method="post" action="/notifications/{{ n.id }}/delete" onsubmit="return confirm('Удалить уведомление?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                <button class="btn sm danger icon-dismiss" type="submit" title="Удалить" aria-label="Удалить">×</button>
+              </form>
+            </td>
           </tr>
         {% endfor %}
         </tbody>
@@ -48,16 +62,30 @@
     </div>
     {% else %}<div class="empty">Пока нет уведомлений</div>{% endif %}
 
-    <div class="section-title">Свежие группы ошибок</div>
+    <div class="section-bar">
+      <div class="section-title">Свежие группы ошибок</div>
+      {% if groups %}
+      <form method="post" action="/errors/clear" onsubmit="return confirm('Удалить все группы ошибок?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <button class="btn sm danger" type="submit">Очистить все</button>
+      </form>
+      {% endif %}
+    </div>
     {% if groups %}
     <div class="card scroll-panel">
       <table class="table" style="border:none">
         <tbody>
         {% for g in groups %}
-          <tr hx-boost="true" onclick="location.href='/errors/{{ g.id }}'" style="cursor:pointer">
-            <td><span class="badge {% if g.severity.value=='critical' %}crit{% else %}warn{% endif %}">{{ g.severity.value }}</span></td>
-            <td><strong>{{ g.exception_type }}</strong> · <span class="muted">{{ g.service }}</span></td>
-            <td style="width:60px;text-align:right">×{{ g.count }}</td>
+          <tr class="dismissible-row">
+            <td class="clickable-cell" hx-boost="true" onclick="location.href='/errors/{{ g.id }}'" style="cursor:pointer;width:90px"><span class="badge {% if g.severity.value=='critical' %}crit{% else %}warn{% endif %}">{{ g.severity.value }}</span></td>
+            <td class="clickable-cell" hx-boost="true" onclick="location.href='/errors/{{ g.id }}'" style="cursor:pointer"><strong>{{ g.exception_type }}</strong> · <span class="muted">{{ g.service }}</span></td>
+            <td class="clickable-cell" hx-boost="true" onclick="location.href='/errors/{{ g.id }}'" style="cursor:pointer;width:60px;text-align:right">×{{ g.count }}</td>
+            <td class="row-dismiss" style="width:44px;text-align:right">
+              <form method="post" action="/errors/{{ g.id }}/delete" onsubmit="event.stopPropagation(); return confirm('Удалить группу ошибок?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                <button class="btn sm danger icon-dismiss" type="submit" title="Удалить" aria-label="Удалить">×</button>
+              </form>
+            </td>
           </tr>
         {% endfor %}
         </tbody>
