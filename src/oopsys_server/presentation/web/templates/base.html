@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="{{ csrf_token }}" />
+  <title>{% block title %}oopsys{% endblock %} · oopsys</title>
+  <link rel="stylesheet" href="/static/app.css" />
+  <script src="/static/vendor/htmx.min.js" defer></script>
+  <script src="/static/vendor/sse.js" defer></script>
+  <script src="/static/vendor/chart.umd.min.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+{% set nav = [
+  ('', 'Дашборд', '/'),
+  ('agents', 'Агенты', '/agents'),
+  ('servers', 'Серверы', '/servers'),
+  ('projects', 'Проекты', '/projects'),
+  ('errors', 'Ошибки', '/errors'),
+  ('containers', 'Контейнеры', '/containers'),
+  ('bots', 'Боты', '/bots'),
+  ('system', 'Система', '/system'),
+] %}
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand"><span class="dot"></span> oopsys</div>
+    {% for key, label, href in nav %}
+    <a class="nav-link {% if active == key %}active{% endif %}" href="{{ href }}">
+      {{ label }}
+      {% if key == '' %}<span id="nav-notif-badge" class="badge crit" style="display:none">0</span>{% endif %}
+    </a>
+    {% endfor %}
+    <div class="spacer"></div>
+    <a class="nav-link {% if active == 'settings' %}active{% endif %}" href="/settings">Настройки</a>
+    {% if account %}
+    <form method="post" action="/logout">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <button class="nav-link" style="width:100%;border:none;background:none;cursor:pointer;text-align:left" type="submit">Выйти</button>
+    </form>
+    {% endif %}
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <h1>{% block heading %}{% endblock %}</h1>
+      <div class="grow"></div>
+      {% if account %}<span class="muted">{{ account.login }}</span>{% endif %}
+    </header>
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+<div id="toasts"></div>
+</body>
+</html>

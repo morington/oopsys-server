@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ group.exception_type }}{% endblock %}
+{% block heading %}Группа ошибок{% endblock %}
+{% block content %}
+<a class="btn sm" href="/errors">← Все ошибки</a>
+
+<div class="card" style="margin-top:14px">
+  <div class="flex between">
+    <div>
+      <span class="badge {% if group.severity.value=='critical' %}crit{% else %}warn{% endif %} dot">{{ group.severity.value }}</span>
+      <strong style="margin-left:8px">{{ group.exception_type }}</strong>
+      <span class="muted">· {{ group.service }} · {{ group.environment }}</span>
+    </div>
+    <div class="wrap-gap">
+      {% if group.status.value == 'open' %}
+      <form method="post" action="/errors/{{ group.id }}/mute"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="btn sm">Заглушить</button></form>
+      <form method="post" action="/errors/{{ group.id }}/resolve"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="btn sm primary">Решено</button></form>
+      {% else %}
+      <form method="post" action="/errors/{{ group.id }}/reopen"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="btn sm">Переоткрыть</button></form>
+      {% endif %}
+    </div>
+  </div>
+  <div class="sub" style="margin-top:12px">
+    Появлений: <strong>{{ group.count }}</strong> ·
+    Впервые: {{ group.first_seen.strftime('%d.%m %H:%M') }} ·
+    Последняя: {{ group.last_seen.strftime('%d.%m %H:%M:%S') }} ·
+    Fingerprint: <span class="mono">{{ group.fingerprint[:16] }}</span>
+  </div>
+</div>
+
+<div class="section-title">Последние появления</div>
+{% for r in reports %}
+<div class="card" style="margin-bottom:12px">
+  <div class="flex between">
+    <strong>{{ r.message[:120] }}</strong>
+    <span class="muted">{{ r.occurred_at.strftime('%d.%m %H:%M:%S') }}</span>
+  </div>
+  {% if r.context %}<div class="sub" style="margin-top:6px">context: <span class="mono">{{ r.context }}</span></div>{% endif %}
+  <pre class="tb">{{ r.traceback }}</pre>
+</div>
+{% else %}
+<div class="empty">Нет сохранённых появлений</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Агенты{% endblock %}
+{% block heading %}Агенты{% endblock %}
+{% block content %}
+<div class="card">
+  <h3>Привязать токен агента</h3>
+  <p class="sub" style="margin:6px 0 14px">Токен создаётся на агенте: <span class="code-pill">oopsys-agent token create --label my-server</span>. Вставьте его сюда — в интерфейсе он больше не отображается.</p>
+  <form method="post" action="/agents/bind">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <div class="form-row">
+      <div class="field" style="flex:2"><label>Токен</label><input name="token" type="password" autocomplete="off" required /></div>
+      <div class="field"><label>Метка</label><input name="label" type="text" placeholder="prod-1" /></div>
+      <div class="field"><label>Endpoint (опц.)</label><input name="endpoint_url" type="url" placeholder="http://host:8080" /></div>
+      <button class="btn primary" type="submit">Привязать</button>
+    </div>
+  </form>
+</div>
+
+<div class="section-title">Привязанные агенты</div>
+{% if items %}
+<table class="table">
+  <thead><tr><th>Метка</th><th>Agent ID</th><th>Статус</th><th>Последняя активность</th><th></th></tr></thead>
+  <tbody>
+  {% for it in items %}
+    <tr>
+      <td><strong>{{ it.token.label or '—' }}</strong></td>
+      <td class="mono">{{ it.token.agent_id or 'ещё не выходил на связь' }}</td>
+      <td>
+        {% if it.agent and it.agent.status.value == 'online' %}<span class="badge ok dot">online</span>
+        {% elif it.agent and it.agent.status.value == 'down' %}<span class="badge crit dot">down</span>
+        {% else %}<span class="badge">нет данных</span>{% endif %}
+        {% if not it.token.is_active %}<span class="badge crit">отозван</span>{% endif %}
+      </td>
+      <td class="muted">{% if it.agent %}{{ it.agent.last_seen.strftime('%d.%m %H:%M:%S') }}{% else %}—{% endif %}</td>
+      <td style="text-align:right">
+        <div class="wrap-gap" style="justify-content:flex-end">
+          <form method="post" action="/agents/{{ it.token.id }}/unbind" onsubmit="return confirm('Отвязать токен от учётки?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <button class="btn sm" type="submit">Отвязать</button>
+          </form>
+          <form method="post" action="/agents/{{ it.token.id }}/revoke" onsubmit="return confirm('Отозвать токен? Агент потеряет доступ к серверу.')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <button class="btn sm danger" type="submit">Отозвать</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty">Нет привязанных токенов</div>
+{% endif %}
+{% endblock %}

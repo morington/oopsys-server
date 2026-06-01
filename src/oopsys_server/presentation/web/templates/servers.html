@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Серверы{% endblock %}
+{% block heading %}Серверы{% endblock %}
+{% block content %}
+{% if cards %}
+<div class="grid cols-3">
+  {% for c in cards %}
+  <a class="card" href="/servers/{{ c.agent.agent_id }}" style="text-decoration:none;color:inherit">
+    <div class="flex between">
+      <strong>{{ c.agent.name or c.agent.agent_id[:8] }}</strong>
+      {% if c.agent.status.value == 'online' %}<span class="badge ok dot">online</span>{% else %}<span class="badge crit dot">down</span>{% endif %}
+    </div>
+    {% if c.latest %}
+    <div style="margin-top:14px">
+      <div class="flex between sub"><span>CPU</span><span>{{ '%.1f'|format(c.latest.cpu_percent) }}%</span></div>
+      <div class="meter {% if c.latest.cpu_percent>85 %}crit{% elif c.latest.cpu_percent>60 %}warn{% endif %}"><span style="width:{{ c.latest.cpu_percent }}%"></span></div>
+      <div class="flex between sub" style="margin-top:10px"><span>RAM</span><span>{{ '%.1f'|format(c.latest.mem_percent) }}%</span></div>
+      <div class="meter {% if c.latest.mem_percent>85 %}crit{% elif c.latest.mem_percent>60 %}warn{% endif %}"><span style="width:{{ c.latest.mem_percent }}%"></span></div>
+      <div class="sub" style="margin-top:10px">load {{ '%.2f'|format(c.latest.load_1) }} · {{ c.latest.captured_at.strftime('%H:%M:%S') }}</div>
+    </div>
+    {% else %}<div class="sub" style="margin-top:14px">нет метрик</div>{% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">Нет серверов с данными. Привяжите токен агента в разделе «Агенты».</div>
+{% endif %}
+{% endblock %}

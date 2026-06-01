@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ agent.name or agent.agent_id[:8] }}{% endblock %}
+{% block heading %}Сервер · {{ agent.name or agent.agent_id[:8] }}{% endblock %}
+{% block content %}
+<div class="flex between">
+  <a class="btn sm" href="/servers">← Все серверы</a>
+  {% if agent.status.value == 'online' %}<span class="badge ok dot">online</span>{% else %}<span class="badge crit dot">down</span>{% endif %}
+</div>
+
+{% if latest %}
+<div class="grid cols-4" style="margin-top:16px">
+  <div class="card"><h3>CPU</h3><div class="metric">{{ '%.1f'|format(latest.cpu_percent) }}%</div></div>
+  <div class="card"><h3>RAM</h3><div class="metric">{{ '%.1f'|format(latest.mem_percent) }}%</div><div class="sub">{{ (latest.mem_used // 1048576) }} / {{ (latest.mem_total // 1048576) }} MB</div></div>
+  <div class="card"><h3>Disk</h3><div class="metric">{% if latest.disk_percent is not none %}{{ '%.0f'|format(latest.disk_percent) }}%{% else %}—{% endif %}</div></div>
+  <div class="card"><h3>Load</h3><div class="metric">{{ '%.2f'|format(latest.load_1) }}</div><div class="sub">5m {{ '%.2f'|format(latest.load_5) }} · 15m {{ '%.2f'|format(latest.load_15) }}</div></div>
+</div>
+{% endif %}
+
+<div class="section-title">Нагрузка (2 часа)</div>
+<div class="card">
+  {% if has_history %}
+  <div data-chart-config style="height:280px;position:relative">
+    <canvas></canvas>
+    <script type="application/json">{{ chart_config | tojson }}</script>
+  </div>
+  {% else %}<div class="empty">Недостаточно данных для графика</div>{% endif %}
+</div>
+
+<div class="section-title">Контейнеры ({{ containers|length }})</div>
+{% if containers %}
+<table class="table">
+  <thead><tr><th>Имя</th><th>Образ</th><th>Статус</th><th>CPU</th><th>RAM</th><th>Рестарты</th></tr></thead>
+  <tbody>
+  {% for c in containers %}
+    <tr>
+      <td><strong>{{ c.name }}</strong></td>
+      <td class="muted">{{ c.image }}</td>
+      <td>{% if c.status == 'running' %}<span class="badge ok dot">{{ c.status }}</span>{% else %}<span class="badge warn dot">{{ c.status }}</span>{% endif %}</td>
+      <td>{% if c.cpu_percent is not none %}{{ '%.1f'|format(c.cpu_percent) }}%{% else %}—{% endif %}</td>
+      <td>{% if c.mem_percent is not none %}{{ '%.1f'|format(c.mem_percent) }}%{% else %}—{% endif %}</td>
+      <td>{{ c.restarts }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}<div class="empty">Контейнеры не обнаружены</div>{% endif %}
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Дашборд{% endblock %}
+{% block heading %}Дашборд{% endblock %}
+{% block content %}
+<div class="grid cols-4">
+  <div class="card"><h3>Агенты</h3><div class="metric">{{ agents_total }}</div><div class="sub">всего привязано</div></div>
+  <div class="card"><h3>Онлайн</h3><div class="metric" style="color:var(--ok)">{{ agents_online }}</div><div class="sub">отвечают</div></div>
+  <div class="card"><h3>Недоступны</h3><div class="metric" style="color:var(--crit)">{{ agents_down }}</div><div class="sub">нет данных</div></div>
+  <div class="card"><h3>Группы ошибок</h3><div class="metric">{{ open_errors }}</div><div class="sub">последние</div></div>
+</div>
+
+<div class="grid cols-2" style="margin-top:16px">
+  <div>
+    <div class="section-title">Серверы</div>
+    {% if server_cards %}
+    <div class="grid" style="gap:12px">
+      {% for c in server_cards %}
+      <div class="card" hx-boost="true">
+        <div class="flex between">
+          <a href="/servers/{{ c.agent.agent_id }}"><strong>{{ c.agent.name or c.agent.agent_id[:8] }}</strong></a>
+          {% if c.agent.status.value == 'online' %}<span class="badge ok dot">online</span>{% else %}<span class="badge crit dot">down</span>{% endif %}
+        </div>
+        {% if c.latest %}
+        <div class="sub" style="margin-top:10px">CPU {{ '%.0f'|format(c.latest.cpu_percent) }}% · RAM {{ '%.0f'|format(c.latest.mem_percent) }}%{% if c.latest.disk_percent is not none %} · Disk {{ '%.0f'|format(c.latest.disk_percent) }}%{% endif %}</div>
+        <div class="meter {% if c.latest.cpu_percent > 85 %}crit{% elif c.latest.cpu_percent > 60 %}warn{% endif %}"><span style="width:{{ c.latest.cpu_percent }}%"></span></div>
+        {% else %}<div class="sub" style="margin-top:10px">нет метрик</div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}<div class="empty">Нет привязанных агентов. Перейдите в раздел «Агенты», чтобы привязать токен.</div>{% endif %}
+  </div>
+
+  <div>
+    <div class="section-title">Последние уведомления</div>
+    {% if notifications %}
+    <div class="card" style="padding:0">
+      <table class="table" style="border:none">
+        <tbody>
+        {% for n in notifications %}
+          <tr>
+            <td style="width:90px"><span class="badge {% if n.severity.value == 'critical' %}crit{% else %}warn{% endif %} dot">{{ n.severity.value }}</span></td>
+            <td><strong>{{ n.title }}</strong><div class="muted">{{ n.body }}</div></td>
+            <td class="muted" style="width:130px">{{ n.created_at.strftime('%d.%m %H:%M') }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}<div class="empty">Пока нет уведомлений</div>{% endif %}
+
+    <div class="section-title">Свежие группы ошибок</div>
+    {% if groups %}
+    <div class="card" style="padding:0">
+      <table class="table" style="border:none">
+        <tbody>
+        {% for g in groups %}
+          <tr hx-boost="true" onclick="location.href='/errors/{{ g.id }}'" style="cursor:pointer">
+            <td><span class="badge {% if g.severity.value=='critical' %}crit{% else %}warn{% endif %}">{{ g.severity.value }}</span></td>
+            <td><strong>{{ g.exception_type }}</strong> · <span class="muted">{{ g.service }}</span></td>
+            <td style="width:60px;text-align:right">×{{ g.count }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}<div class="empty">Ошибок нет</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

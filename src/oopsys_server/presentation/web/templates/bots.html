@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Боты{% endblock %}
+{% block heading %}Боты{% endblock %}
+{% block content %}
+<div class="card">
+  <h3>Добавить бота</h3>
+  <p class="sub" style="margin:6px 0 14px">Укажите токен своего Telegram-бота (BotFather). После добавления появится команда для привязки чата.</p>
+  <form method="post" action="/bots/add" class="form-row">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <div class="field" style="flex:2"><label>Bot token</label><input name="bot_token" type="password" autocomplete="off" placeholder="123456:ABC-..." required /></div>
+    <button class="btn primary" type="submit">Добавить</button>
+  </form>
+</div>
+
+<div class="section-title">Боты ({{ bots|length }})</div>
+{% if bots %}
+<div class="grid cols-2">
+  {% for b in bots %}
+  <div class="card">
+    <div class="flex between">
+      <strong>{{ b.bot_username or 'Бот' }}</strong>
+      {% if b.status.value == 'linked' %}<span class="badge ok dot">привязан</span>{% else %}<span class="badge warn dot">ожидает</span>{% endif %}
+    </div>
+    {% if b.status.value != 'linked' %}
+    <div class="sub" style="margin-top:10px">Откройте своего бота в Telegram и отправьте:</div>
+    <div class="code-pill" style="display:block;margin-top:6px;padding:8px">/start {{ b.invite_key }}</div>
+    {% else %}
+    <div class="sub" style="margin-top:10px">Чат: <span class="mono">{{ b.chat_id }}</span></div>
+    {% endif %}
+    <form method="post" action="/bots/{{ b.id }}/delete" style="margin-top:12px" onsubmit="return confirm('Удалить бота?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <button class="btn sm danger" type="submit">Удалить</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}<div class="empty">Боты не добавлены</div>{% endif %}
+{% endblock %}

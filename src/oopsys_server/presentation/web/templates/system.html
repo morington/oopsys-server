@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Система{% endblock %}
+{% block heading %}Система{% endblock %}
+{% block content %}
+<div class="grid cols-3">
+  <div class="card"><h3>NATS</h3><div class="metric">{% if nats_connected %}<span style="color:var(--ok)">ON</span>{% else %}<span style="color:var(--crit)">OFF</span>{% endif %}</div><div class="sub">рассылка ботам</div></div>
+  <div class="card"><h3>Ошибки сервера</h3><div class="metric">{{ self_errors|length }}</div><div class="sub">сгруппировано</div></div>
+  <div class="card"><h3>Сбои агентов</h3><div class="metric">{{ agent_faults|length }}</div><div class="sub">последние</div></div>
+</div>
+
+<div class="section-title">Ошибки самого сервера</div>
+{% if self_errors %}
+<table class="table">
+  <thead><tr><th>Компонент</th><th>Тип</th><th>Сообщение</th><th>Кол-во</th><th>Последняя</th></tr></thead>
+  <tbody>
+  {% for e in self_errors %}
+    <tr>
+      <td><span class="code-pill">{{ e.component }}</span></td>
+      <td><strong>{{ e.exception_type }}</strong></td>
+      <td class="muted">{{ e.message[:90] }}</td>
+      <td>×{{ e.count }}</td>
+      <td class="muted">{{ e.occurred_at.strftime('%d.%m %H:%M:%S') }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}<div class="empty">Сервер работает без ошибок</div>{% endif %}
+
+<div class="section-title">Сбои агентов</div>
+{% if agent_faults %}
+<table class="table">
+  <thead><tr><th>Агент</th><th>Компонент</th><th>Операция</th><th>Тип</th><th>Когда</th></tr></thead>
+  <tbody>
+  {% for f in agent_faults %}
+    <tr>
+      <td class="mono">{{ f.agent_id[:8] }}</td>
+      <td><span class="code-pill">{{ f.component }}</span></td>
+      <td class="muted">{{ f.operation }}</td>
+      <td>{{ f.exception_type }}</td>
+      <td class="muted">{{ f.occurred_at.strftime('%d.%m %H:%M:%S') }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}<div class="empty">Сбоев агентов нет</div>{% endif %}
+{% endblock %}

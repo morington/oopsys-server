@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Настройки{% endblock %}
+{% block heading %}Настройки{% endblock %}
+{% block content %}
+{% if account.must_change_password %}<div class="alert info">Рекомендуем сменить выданный пароль и при желании логин.</div>{% endif %}
+{% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+{% if ok %}<div class="alert ok">{{ ok }}</div>{% endif %}
+
+<div class="card" style="max-width:520px">
+  <form method="post" action="/settings">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <div class="field">
+      <label>Логин</label>
+      <input name="new_login" type="text" value="{{ account.login }}" autocomplete="username" />
+    </div>
+    <div class="section-title" style="margin:18px 0 10px">Смена пароля</div>
+    <div class="field"><label>Текущий пароль</label><input name="current_password" type="password" autocomplete="current-password" /></div>
+    <div class="field"><label>Новый пароль</label><input name="new_password" type="password" autocomplete="new-password" /></div>
+    <div class="field"><label>Повторите новый пароль</label><input name="confirm_password" type="password" autocomplete="new-password" /></div>
+    <button class="btn primary" type="submit">Сохранить</button>
+  </form>
+</div>
+{% endblock %}

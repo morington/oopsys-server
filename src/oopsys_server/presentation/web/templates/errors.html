@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Ошибки{% endblock %}
+{% block heading %}Ошибки{% endblock %}
+{% block content %}
+{% if groups %}
+<table class="table">
+  <thead><tr><th>Severity</th><th>Тип</th><th>Сервис</th><th>Сообщение</th><th>Кол-во</th><th>Последняя</th><th>Статус</th></tr></thead>
+  <tbody>
+  {% for g in groups %}
+    <tr onclick="location.href='/errors/{{ g.id }}'" style="cursor:pointer">
+      <td><span class="badge {% if g.severity.value=='critical' %}crit{% else %}warn{% endif %} dot">{{ g.severity.value }}</span></td>
+      <td><strong>{{ g.exception_type }}</strong></td>
+      <td class="muted">{{ g.service }}</td>
+      <td class="muted">{{ g.title[:70] }}</td>
+      <td>×{{ g.count }}</td>
+      <td class="muted">{{ g.last_seen.strftime('%d.%m %H:%M') }}</td>
+      <td>
+        {% if g.status.value == 'open' %}<span class="badge">open</span>
+        {% elif g.status.value == 'muted' %}<span class="badge warn">muted</span>
+        {% else %}<span class="badge ok">resolved</span>{% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty">Ошибок нет — это хорошо.</div>
+{% endif %}
+{% endblock %}

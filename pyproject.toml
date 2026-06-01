@@ -5,28 +5,43 @@ description = "oops, system crashed :)"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "aiogram>=3.28.2",
     "alembic>=1.18.4",
+    "argon2-cffi>=25.1.0",
     "asyncpg>=0.31.0",
+    "cryptography>=48.0.0",
     "dishka>=1.10.1",
     "fastapi>=0.136.3",
+    "faststream[nats]>=0.5.0",
+    "httpx>=0.28.1",
+    "itsdangerous>=2.2.0",
+    "jinja2>=3.1.6",
     "kitstructlog>=0.1.2",
+    "pillow>=12.2.0",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.14.1",
+    "pyotp>=2.9.0",
+    "python-multipart>=0.0.30",
     "sqlalchemy>=2.0.50",
+    "sse-starlette>=3.4.4",
     "structlog>=25.5.0",
     "uvicorn>=0.48.0",
 ]
+
+[project.scripts]
+oopsys-server = "oopsys_server.cli:main"
+oopsys-bot = "oopsys_bot.main:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/oopsys_server"]
+packages = ["src/oopsys_server", "src/oopsys_bot"]
 
 [tool.bandit]
 exclude_dirs = ["tests", "examples"]
-skips = ["B105"]
+skips = ["B105", "B104", "B311"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/units"]
@@ -61,11 +76,14 @@ ignore = [
     "UP007", "UP042",
     "A002",
     "ASYNC109",
+    "B008",
     "BLE001",
     "C901",
     "DTZ003",
     "FAST001", "FAST002",
+    "FBT001",
     "FBT003",
+    "S311",
     "PLC0415",
     "PLW0603",
     "S105",
@@ -74,6 +92,9 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["TID252", "PLR2004", "S101", "SLF001"]
 "examples/**/*.py" = ["T201"]
+"src/oopsys_server/cli.py" = ["T201"]
+"src/oopsys_server/presentation/preview/*.py" = ["T201", "S311"]
+"src/oopsys_server/infrastructure/persistence/migrations/**/*.py" = ["W291", "INP001"]
 
 [tool.ruff.lint.isort]
 no-lines-before = ["local-folder"]

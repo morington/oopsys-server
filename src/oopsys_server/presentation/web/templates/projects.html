@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Проекты{% endblock %}
+{% block heading %}Проекты{% endblock %}
+{% block content %}
+<div class="card">
+  <h3>Новый проект</h3>
+  <form method="post" action="/projects/create" class="form-row" style="margin-top:10px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <div class="field" style="flex:2"><label>Название</label><input name="name" type="text" placeholder="cryptobot" required /></div>
+    <button class="btn primary" type="submit">Создать</button>
+  </form>
+</div>
+
+<div class="section-title">Проекты ({{ projects|length }})</div>
+{% if projects %}
+<div class="grid cols-2">
+  {% for p in projects %}
+  <div class="card">
+    <div class="flex between">
+      <strong>{{ p.name }}</strong>
+      <span class="badge">{{ counts.get(p.id, 0) }} контейнеров</span>
+    </div>
+    <div class="sub" style="margin-top:4px">slug: <span class="mono">{{ p.slug }}</span></div>
+
+    <div class="section-title" style="margin:14px 0 8px">Авто-правила</div>
+    {% set rules = rules_by_project.get(p.id, []) %}
+    {% if rules %}
+      <div class="wrap-gap" style="margin-bottom:10px">
+        {% for r in rules %}<span class="badge">{{ r.match_type }}: {{ r.match_value }}</span>{% endfor %}
+      </div>
+    {% else %}<div class="sub" style="margin-bottom:10px">нет правил</div>{% endif %}
+
+    <form method="post" action="/projects/{{ p.id }}/rules" class="form-row">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <div class="field"><label>Тип</label>
+        <select name="match_type">
+          <option value="service">service</option>
+          <option value="label">label (key=value)</option>
+          <option value="container_name">container_name</option>
+        </select>
+      </div>
+      <div class="field" style="flex:2"><label>Значение</label><input name="match_value" type="text" placeholder="cryptobot" required /></div>
+      <button class="btn sm" type="submit">+ правило</button>
+    </form>
+
+    <form method="post" action="/projects/{{ p.id }}/delete" style="margin-top:10px" onsubmit="return confirm('Удалить проект?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <button class="btn sm danger" type="submit">Удалить проект</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}<div class="empty">Нет проектов. Создайте первый выше.</div>{% endif %}
+{% endblock %}
