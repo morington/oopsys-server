@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import RedirectResponse, Response
 
-from oopsys_server.infrastructure.persistence.models import Account
+from oopsys_server.infrastructure.persistence.models import Account, ContainerStateRecord
 from oopsys_server.infrastructure.persistence.repositories import (
     AgentTokenRepository,
     ContainerRepository,
@@ -16,22 +16,74 @@ from oopsys_server.presentation.web.templating import render
 
 router = APIRouter(route_class=DishkaRoute, tags=["web-containers"])
 
+
 async def _agent_ids(tokens: AgentTokenRepository, account: Account) -> list[str]:
     bound = await tokens.list_for_account(account.id)
     return [t.agent_id for t in bound if t.agent_id]
 
+
+def _cpu_label(value: float | None) -> str:
+    if value is None:
+        return "—"
+    try:
+        return f"{float(value):.1f}%"
+    except (TypeError, ValueError):
+        return "—"
+
+
+def _container_view(record: ContainerStateRecord) -> dict[str, object]:
+    cid = record.container_id or ""
+    return {
+        "agent_id": record.agent_id,
+        "container_id": cid,
+        "container_id_short": cid[:12],
+        "name": record.name or cid[:12] or "—",
+        "image": record.image or "—",
+        "status": record.status or "unknown",
+        "cpu_label": _cpu_label(record.cpu_percent),
+        "project_id": record.project_id,
+    }
+
+
 @router.get("/containers")
-async def containers_page(request: Request, tokens: FromDishka[AgentTokenRepository], containers: FromDishka[ContainerRepository], projects: FromDishka[ProjectRepository], account: Account=Depends(require_account)) -> Response:
+async def containers_page(
+    request: Request,
+    tokens: FromDishka[AgentTokenRepository],
+    containers: FromDishka[ContainerRepository],
+    projects: FromDishka[ProjectRepository],
+    account: Account = Depends(require_account),
+) -> Response:
     agent_ids = await _agent_ids(tokens, account)
     rows = await containers.list_for_agents(agent_ids)
     project_rows = await projects.list_for_account(account.id)
     project_names = {p.id: p.name for p in project_rows}
-    assigned = [r for r in rows if r.project_id in project_names]
-    unassigned = [r for r in rows if r.project_id not in project_names]
-    return render(request, "containers.html", {"active": "containers", "assigned": assigned, "unassigned": unassigned, "projects": project_rows, "project_names": project_names})
+    views = [_container_view(r) for r in rows]
+    assigned = [v for v in views if v["project_id"] in project_names]
+    unassigned = [v for v in views if v["project_id"] not in project_names]
+    return render(
+        request,
+        "containers.html",
+        {
+            "active": "containers",
+            "assigned": assigned,
+            "unassigned": unassigned,
+            "projects": project_rows,
+            "project_names": project_names,
+        },
+    )
+
 
 @router.post("/containers/assign")
-async def assign(request: Request, tokens: FromDishka[AgentTokenRepository], containers: FromDishka[ContainerRepository], session: FromDishka[AsyncSession], agent_id: str=Form(...), container_id: str=Form(...), project_id: str=Form(...), account: Account=Depends(require_account)) -> Response:
+async def assign(
+    request: Request,
+    tokens: FromDishka[AgentTokenRepository],
+    containers: FromDishka[ContainerRepository],
+    session: FromDishka[AsyncSession],
+    agent_id: str = Form(...),
+    container_id: str = Form(...),
+    project_id: str = Form(...),
+    account: Account = Depends(require_account),
+) -> Response:
     if agent_id in await _agent_ids(tokens, account):
         target = uuid.UUID(project_id) if project_id else None
         await containers.assign_project(agent_id, container_id, target)

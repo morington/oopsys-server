@@ -1,27 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Контейнеры{% endblock %}
 {% block heading %}Контейнеры{% endblock %}
-{% macro container_row(c) %}
-<tr>
-  <td><strong>{{ c.name }}</strong><div class="muted mono">{{ c.container_id[:12] }}</div></td>
-  <td class="muted">{{ c.image }}</td>
-  <td>{% if c.status == 'running' %}<span class="badge ok dot">{{ c.status }}</span>{% else %}<span class="badge warn dot">{{ c.status }}</span>{% endif %}</td>
-  <td>{% if c.cpu_percent is not none %}{{ '%.1f'|format(c.cpu_percent) }}%{% else %}—{% endif %}</td>
-  <td class="muted">{{ project_names.get(c.project_id, '—') }}</td>
-  <td style="text-align:right">
-    <form method="post" action="/containers/assign" class="flex" style="justify-content:flex-end;gap:6px">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-      <input type="hidden" name="agent_id" value="{{ c.agent_id }}" />
-      <input type="hidden" name="container_id" value="{{ c.container_id }}" />
-      <select name="project_id" style="width:auto">
-        <option value="">— без проекта —</option>
-        {% for p in projects %}<option value="{{ p.id }}" {% if p.id == c.project_id %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
-      </select>
-      <button class="btn sm" type="submit">OK</button>
-    </form>
-  </td>
-</tr>
-{% endmacro %}
 {% block content %}
 {% if not projects %}
 <div class="alert info">Создайте проект в разделе «Проекты», чтобы группировать контейнеры.</div>
@@ -31,7 +10,29 @@
 {% if unassigned %}
 <table class="table">
   <thead><tr><th>Контейнер</th><th>Образ</th><th>Статус</th><th>CPU</th><th>Проект</th><th></th></tr></thead>
-  <tbody>{% for c in unassigned %}{{ container_row(c) }}{% endfor %}</tbody>
+  <tbody>
+  {% for c in unassigned %}
+    <tr>
+      <td><strong>{{ c.name }}</strong><div class="muted mono">{{ c.container_id_short }}</div></td>
+      <td class="muted">{{ c.image }}</td>
+      <td>{% if c.status == 'running' %}<span class="badge ok dot">{{ c.status }}</span>{% else %}<span class="badge warn dot">{{ c.status }}</span>{% endif %}</td>
+      <td>{{ c.cpu_label }}</td>
+      <td class="muted">{{ project_names.get(c.project_id, '—') }}</td>
+      <td style="text-align:right">
+        <form method="post" action="/containers/assign" class="flex" style="justify-content:flex-end;gap:6px">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <input type="hidden" name="agent_id" value="{{ c.agent_id }}" />
+          <input type="hidden" name="container_id" value="{{ c.container_id }}" />
+          <select name="project_id" style="width:auto">
+            <option value="">— без проекта —</option>
+            {% for p in projects %}<option value="{{ p.id }}" {% if p.id == c.project_id %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+          </select>
+          <button class="btn sm" type="submit">OK</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
 </table>
 {% else %}<div class="empty">Все контейнеры распределены</div>{% endif %}
 
@@ -39,7 +40,29 @@
 {% if assigned %}
 <table class="table">
   <thead><tr><th>Контейнер</th><th>Образ</th><th>Статус</th><th>CPU</th><th>Проект</th><th></th></tr></thead>
-  <tbody>{% for c in assigned %}{{ container_row(c) }}{% endfor %}</tbody>
+  <tbody>
+  {% for c in assigned %}
+    <tr>
+      <td><strong>{{ c.name }}</strong><div class="muted mono">{{ c.container_id_short }}</div></td>
+      <td class="muted">{{ c.image }}</td>
+      <td>{% if c.status == 'running' %}<span class="badge ok dot">{{ c.status }}</span>{% else %}<span class="badge warn dot">{{ c.status }}</span>{% endif %}</td>
+      <td>{{ c.cpu_label }}</td>
+      <td class="muted">{{ project_names.get(c.project_id, '—') }}</td>
+      <td style="text-align:right">
+        <form method="post" action="/containers/assign" class="flex" style="justify-content:flex-end;gap:6px">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <input type="hidden" name="agent_id" value="{{ c.agent_id }}" />
+          <input type="hidden" name="container_id" value="{{ c.container_id }}" />
+          <select name="project_id" style="width:auto">
+            <option value="">— без проекта —</option>
+            {% for p in projects %}<option value="{{ p.id }}" {% if p.id == c.project_id %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+          </select>
+          <button class="btn sm" type="submit">OK</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
 </table>
 {% else %}<div class="empty">Пока нет контейнеров в проектах</div>{% endif %}
 {% endblock %}
