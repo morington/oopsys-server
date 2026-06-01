@@ -28,30 +28,40 @@ Edit `.env` before starting:
 | `SECURITY__BOT_TOKEN_KEY` | Generate a **different** long random string |
 | `POSTGRESQL__PASSWORD` | Strong password |
 | `DEV` | `false` in production |
-| `SECURITY__COOKIE_SECURE` | `true` when the site is served over HTTPS behind a reverse proxy |
+| `OOPSYS_PUBLIC_IP` | Your server's **public** IPv4 — enables automatic HTTPS (leave empty for plain HTTP) |
+| `OOPSYS_ACME_EMAIL` | Email for Let's Encrypt (required when `OOPSYS_PUBLIC_IP` is set) |
+| `SECURITY__COOKIE_SECURE` | `true` with `OOPSYS_PUBLIC_IP`; `false` for plain HTTP |
 
-`SERVER_PORT` in `.env` is **only** used by `docker-compose.yml` to map host port → container `8000`. The application ignores it.
+`nginx` listens on ports **80** and **443**. With `OOPSYS_PUBLIC_IP` set, Certbot obtains a certificate automatically; open both ports on the firewall.
 
 ### 2. Start the stack
+
+Production with HTTPS — set in `.env`:
+
+```env
+OOPSYS_PUBLIC_IP=203.0.113.10
+OOPSYS_ACME_EMAIL=you@example.com
+SECURITY__COOKIE_SECURE=true
+```
+
+Plain HTTP — leave `OOPSYS_PUBLIC_IP` empty, `SECURITY__COOKIE_SECURE=false`.
 
 ```bash
 docker compose up -d --build
 ```
 
-Services:
-
 | Service | Role |
 |---------|------|
-| `server` | FastAPI app, migrations on boot, port `8000` inside the network |
-| `postgres` | Persistent database |
-| `nats` | JetStream fan-out to bot-worker |
-| `bot-worker` | Telegram delivery (`oopsys-bot`) |
-
-Check health:
+| `server` | FastAPI app (internal) |
+| `nginx` | reverse proxy; Certbot inside when `OOPSYS_PUBLIC_IP` is set |
+| `postgres` | database |
+| `nats` | JetStream |
+| `bot-worker` | Telegram |
 
 ```bash
 docker compose ps
 docker compose logs -f server
+docker compose logs -f nginx
 ```
 
 ### 3. Create a web account
@@ -66,7 +76,7 @@ Optional flags: `--login NAME --password SECRET`.
 
 ### 4. Open the UI and bind agents
 
-1. Browse to `http://<your-host>:8000` (or your HTTPS URL).
+1. Browse to `https://<your-public-ip>` or `http://<your-host>`.
 2. Log in with the credentials from step 3.
 3. On **Agents**, paste an agent token from the remote host:
 
@@ -78,7 +88,7 @@ Optional flags: `--login NAME --password SECRET`.
 4. Configure each agent to reach this server (HTTPS in production):
 
    ```env
-   SERVER__URL=https://monitoring.example.com
+   SERVER__URL=https://YOUR.PUBLIC.IP
    ```
 
 The token is stored as a SHA-256 hash only; it cannot be read back from the UI. Revoking a token makes ingest return `401` for that agent.
@@ -89,16 +99,14 @@ The token is stored as a SHA-256 hash only; it cannot be read back from the UI. 
 2. In the web UI (**Bots**), add the bot token. You receive an invite key and `/start <invite_key>` instruction.
 3. The `bot-worker` service must be running (`NATS__ENABLED=true`).
 
-## Reverse proxy (production)
+## HTTPS
 
-Do not expose Postgres or NATS publicly. Terminate TLS on Caddy, Nginx, or Traefik and proxy to `server:8000`.
+Service `nginx` in `docker-compose.yml` — configs in `docker/nginx/`:
 
-Example expectations:
+- `OOPSYS_PUBLIC_IP` empty → HTTP on port 80
+- `OOPSYS_PUBLIC_IP` set → Certbot gets a Let's Encrypt cert for that IP, HTTPS on 443, auto-renewal every 6 hours
 
-- Set `SECURITY__COOKIE_SECURE=true`.
-- Forward `X-Forwarded-Proto` and `X-Forwarded-For` (uvicorn runs with `proxy_headers=True`).
-
-Agents must use `https://` in `SERVER__URL`.
+Test first with `OOPSYS_ACME_STAGING=true` if you want.
 
 ## Local development (without Docker)
 
@@ -221,4 +229,5 @@ Integration tests expect PostgreSQL; see `tests/integrations/conftest.py` for de
 | Agent always `401` | Token revoked or not bound to an account; re-bind in UI |
 | Agent shows `down` | No ingest for `LIVENESS__STALE_SECONDS` (default 90s); check `SERVER__URL` and firewall |
 | Login fails locally | `SECURITY__COOKIE_SECURE=false` for plain HTTP |
+| `nginx` restart loop / cert fails | Ports 80/443 open; `OOPSYS_PUBLIC_IP` matches public IP; try `OOPSYS_ACME_STAGING=true` |
 | Bot messages missing | `bot-worker` running, NATS up, bot linked via `/start`, account has bot configured |

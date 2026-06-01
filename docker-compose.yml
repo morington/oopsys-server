@@ -35,8 +35,6 @@ services:
     environment:
       POSTGRESQL__HOST: postgres
       NATS__SERVERS: '["nats://nats:4222"]'
-    ports:
-      - "${SERVER_PORT:-8000}:8000"
     networks: [oopsys]
 
   bot-worker:
@@ -54,9 +52,30 @@ services:
       NATS__SERVERS: '["nats://nats:4222"]'
     networks: [oopsys]
 
+  nginx:
+    build: docker/nginx
+    restart: unless-stopped
+    depends_on:
+      server:
+        condition: service_started
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      OOPSYS_PUBLIC_IP: ${OOPSYS_PUBLIC_IP:-}
+      OOPSYS_ACME_EMAIL: ${OOPSYS_ACME_EMAIL:-}
+      OOPSYS_ACME_STAGING: ${OOPSYS_ACME_STAGING:-false}
+      CERTBOT_RENEW_INTERVAL_SECONDS: ${CERTBOT_RENEW_INTERVAL_SECONDS:-21600}
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    networks: [oopsys]
+
 volumes:
   pgdata:
   natsdata:
+  certbot_www:
+  certbot_certs:
 
 networks:
   oopsys:
