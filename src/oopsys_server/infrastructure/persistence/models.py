@@ -163,6 +163,8 @@ class ContainerStateRecord(Base):
     blk_read: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     blk_write: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     labels: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    ports: Mapped[list[str]] = mapped_column(JSONB, default=list, server_default="[]")
+    health: Mapped[str | None] = mapped_column(String(32), nullable=True)
     project_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True
     )

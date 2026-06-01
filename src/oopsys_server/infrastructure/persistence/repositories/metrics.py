@@ -1,7 +1,7 @@
 import uuid
 from datetime import timedelta
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from oopsys_server.domain.envelope import ContainerStatePayload, ServerMetricsPayload
@@ -84,10 +84,37 @@ class ContainerRepository:
         record.blk_read = payload.blk_read
         record.blk_write = payload.blk_write
         record.labels = payload.labels
+        record.ports = list(payload.ports)
+        record.health = payload.health
         record.captured_at = payload.captured_at
         record.updated_at = utc_now()
         await self._session.flush()
         return record
+
+    async def replace_snapshot(
+        self, agent_id: str, payloads: list[ContainerStatePayload]
+    ) -> list[ContainerStateRecord]:
+        """Upsert current containers and remove rows that no longer exist on the host."""
+        records = [await self.upsert(agent_id, payload) for payload in payloads]
+        active_ids = {payload.container_id for payload in payloads}
+        await self._delete_absent(agent_id, active_ids)
+        return records
+
+    async def _delete_absent(self, agent_id: str, active_ids: set[str]) -> None:
+        query = delete(ContainerStateRecord).where(ContainerStateRecord.agent_id == agent_id)
+        if active_ids:
+            query = query.where(ContainerStateRecord.container_id.not_in(active_ids))
+        await self._session.execute(query)
+
+    async def mark_offline(self, agent_id: str) -> None:
+        """Mark all containers stale when the agent stops reporting."""
+        result = await self._session.execute(
+            select(ContainerStateRecord).where(ContainerStateRecord.agent_id == agent_id)
+        )
+        now = utc_now()
+        for record in result.scalars():
+            record.status = "offline"
+            record.updated_at = now
 
     async def list_for_agents(self, agent_ids: list[str]) -> list[ContainerStateRecord]:
         if not agent_ids:

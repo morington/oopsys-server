@@ -5,12 +5,13 @@ from fastapi import APIRouter, Depends, Form, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import RedirectResponse, Response
 
-from oopsys_server.infrastructure.persistence.models import Account, ContainerStateRecord
+from oopsys_server.infrastructure.persistence.models import Account
 from oopsys_server.infrastructure.persistence.repositories import (
     AgentTokenRepository,
     ContainerRepository,
     ProjectRepository,
 )
+from oopsys_server.presentation.web.container_display import build_container_view
 from oopsys_server.presentation.web.deps import require_account
 from oopsys_server.presentation.web.templating import render
 
@@ -20,30 +21,6 @@ router = APIRouter(route_class=DishkaRoute, tags=["web-containers"])
 async def _agent_ids(tokens: AgentTokenRepository, account: Account) -> list[str]:
     bound = await tokens.list_for_account(account.id)
     return [t.agent_id for t in bound if t.agent_id]
-
-
-def _cpu_label(value: float | None) -> str:
-    if value is None:
-        return "—"
-    try:
-        return f"{float(value):.1f}%"
-    except (TypeError, ValueError):
-        return "—"
-
-
-def _container_view(record: ContainerStateRecord) -> dict[str, object]:
-    cid = record.container_id or ""
-    return {
-        "agent_id": record.agent_id,
-        "container_id": cid,
-        "container_id_short": cid[:12],
-        "name": record.name or cid[:12] or "—",
-        "image": record.image or "—",
-        "status": record.status or "unknown",
-        "cpu_label": _cpu_label(record.cpu_percent),
-        "project_id": record.project_id,
-        "hidden": record.hidden,
-    }
 
 
 @router.get("/containers")
@@ -58,7 +35,7 @@ async def containers_page(
     rows = await containers.list_for_agents(agent_ids)
     project_rows = await projects.list_for_account(account.id)
     project_names = {p.id: p.name for p in project_rows}
-    views = [_container_view(r) for r in rows]
+    views = [build_container_view(r) for r in rows]
     visible = [v for v in views if not v["hidden"]]
     hidden = [v for v in views if v["hidden"]]
     assigned = [v for v in visible if v["project_id"] in project_names]

@@ -12,6 +12,7 @@ from oopsys_server.infrastructure.nats import NotificationGateway
 from oopsys_server.infrastructure.persistence.repositories import (
     AgentRepository,
     AgentTokenRepository,
+    ContainerRepository,
     NotificationRepository,
 )
 from oopsys_server.infrastructure.realtime import RealtimeHub
@@ -55,10 +56,12 @@ class LivenessMonitor:
         async with self._session_factory() as session:
             agents = AgentRepository(session)
             tokens = AgentTokenRepository(session)
+            containers = ContainerRepository(session)
             notifications = NotificationService(NotificationRepository(session), self._gateway, self._hub)
             stale = await agents.list_stale(self._cfg.liveness.stale_seconds)
             for agent in stale:
                 await agents.set_status(agent.agent_id, AgentStatus.DOWN)
+                await containers.mark_offline(agent.agent_id)
                 account_rows = await tokens.accounts_with_labels_for_agent(agent.agent_id)
                 for account, token_label in account_rows:
                     display = resolve_agent_display_name(

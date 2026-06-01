@@ -116,12 +116,17 @@ async def test_ingest_metric_and_container(container) -> None:
                 source=Source.DOCKER,
                 occurred_at=datetime.now(tz=UTC),
                 payload={
-                    "container_id": "abc123",
-                    "name": "web",
-                    "image": "nginx",
-                    "status": "running",
-                    "labels": {"com.docker.compose.service": "web"},
                     "captured_at": datetime.now(tz=UTC).isoformat(),
+                    "containers": [
+                        {
+                            "container_id": "abc123",
+                            "name": "web",
+                            "image": "nginx",
+                            "status": "running",
+                            "labels": {"com.docker.compose.service": "web"},
+                            "captured_at": datetime.now(tz=UTC).isoformat(),
+                        }
+                    ],
                 },
             )
         )
@@ -136,3 +141,27 @@ async def test_ingest_metric_and_container(container) -> None:
         rows = await containers.list_for_agents([AGENT_ID])
         assert len(rows) == 1
         assert rows[0].name == "web"
+
+        await ingest.handle(
+            Envelope(
+                agent_id=AGENT_ID,
+                source=Source.DOCKER,
+                occurred_at=datetime.now(tz=UTC),
+                payload={
+                    "captured_at": datetime.now(tz=UTC).isoformat(),
+                    "containers": [
+                        {
+                            "container_id": "new999",
+                            "name": "web",
+                            "image": "nginx",
+                            "status": "running",
+                            "captured_at": datetime.now(tz=UTC).isoformat(),
+                        }
+                    ],
+                },
+            )
+        )
+        await session.commit()
+        rows = await containers.list_for_agents([AGENT_ID])
+        assert len(rows) == 1
+        assert rows[0].container_id == "new999"

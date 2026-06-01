@@ -46,7 +46,16 @@ class ContainerStatePayload(BaseModel):
     blk_read: int | None = None
     blk_write: int | None = None
     labels: dict[str, str] = Field(default_factory=dict)
+    ports: list[str] = Field(default_factory=list)
+    health: str | None = None
     captured_at: datetime
+
+
+class ContainerSnapshotPayload(BaseModel):
+    """Full docker state for an agent; replaces stale container rows on the server."""
+
+    captured_at: datetime
+    containers: list[ContainerStatePayload] = Field(default_factory=list)
 
 
 class AgentFaultPayload(BaseModel):

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/containers.html" import container_status, container_row_cells %}
 {% block title %}{{ display_name }}{% endblock %}
 {% block heading %}Сервер · {{ display_name }}{% endblock %}
 {% block content %}
@@ -29,14 +30,13 @@
 <div class="section-title">Контейнеры ({{ containers|length }})</div>
 {% if containers %}
 <table class="table">
-  <thead><tr><th>Имя</th><th>Образ</th><th>Статус</th><th>CPU</th><th>RAM</th><th>Рестарты</th></tr></thead>
+  <thead><tr><th>Имя</th><th>Образ</th><th>Статус</th><th>Запущен</th><th>Порты</th><th>CPU</th><th>RAM</th><th>Рестарты</th></tr></thead>
   <tbody>
   {% for c in containers %}
     <tr>
       <td><strong>{{ c.name }}</strong></td>
       <td class="muted">{{ c.image }}</td>
-      <td>{% if c.status == 'running' %}<span class="badge ok dot">{{ c.status }}</span>{% else %}<span class="badge warn dot">{{ c.status }}</span>{% endif %}</td>
-      <td>{% if c.cpu_percent is not none %}{{ '%.1f'|format(c.cpu_percent) }}%{% else %}—{% endif %}</td>
+      {{ container_row_cells(c) }}
       <td>{% if c.mem_percent is not none %}{{ '%.1f'|format(c.mem_percent) }}%{% else %}—{% endif %}</td>
       <td>{{ c.restarts }}</td>
     </tr>

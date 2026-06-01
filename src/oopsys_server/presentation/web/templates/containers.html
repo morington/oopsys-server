@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/containers.html" import container_status, container_row_cells %}
 {% block title %}Контейнеры{% endblock %}
 {% block heading %}Контейнеры{% endblock %}
 {% block content %}
@@ -9,14 +10,13 @@
 <div class="section-title">Не распределены ({{ unassigned|length }})</div>
 {% if unassigned %}
 <table class="table">
-  <thead><tr><th>Контейнер</th><th>Образ</th><th>Статус</th><th>CPU</th><th>Проект</th><th></th></tr></thead>
+  <thead><tr><th>Контейнер</th><th>Образ</th><th>Статус</th><th>Запущен</th><th>Порты</th><th>CPU</th><th>Проект</th><th></th></tr></thead>
   <tbody>
   {% for c in unassigned %}
     <tr>
       <td><strong>{{ c.name }}</strong><div class="muted mono">{{ c.container_id_short }}</div></td>
       <td class="muted">{{ c.image }}</td>
-      <td>{% if c.status == 'running' %}<span class="badge ok dot">{{ c.status }}</span>{% else %}<span class="badge warn dot">{{ c.status }}</span>{% endif %}</td>
-      <td>{{ c.cpu_label }}</td>
+      {{ container_row_cells(c) }}
       <td class="muted">{{ project_names.get(c.project_id, '—') }}</td>
       <td style="text-align:right">
         <div class="flex" style="justify-content:flex-end;gap:6px;align-items:center">
@@ -47,14 +47,13 @@
 <div class="section-title">В проектах ({{ assigned|length }})</div>
 {% if assigned %}
 <table class="table">
-  <thead><tr><th>Контейнер</th><th>Образ</th><th>Статус</th><th>CPU</th><th>Проект</th><th></th></tr></thead>
+  <thead><tr><th>Контейнер</th><th>Образ</th><th>Статус</th><th>Запущен</th><th>Порты</th><th>CPU</th><th>Проект</th><th></th></tr></thead>
   <tbody>
   {% for c in assigned %}
     <tr>
       <td><strong>{{ c.name }}</strong><div class="muted mono">{{ c.container_id_short }}</div></td>
       <td class="muted">{{ c.image }}</td>
-      <td>{% if c.status == 'running' %}<span class="badge ok dot">{{ c.status }}</span>{% else %}<span class="badge warn dot">{{ c.status }}</span>{% endif %}</td>
-      <td>{{ c.cpu_label }}</td>
+      {{ container_row_cells(c) }}
       <td class="muted">{{ project_names.get(c.project_id, '—') }}</td>
       <td style="text-align:right">
         <div class="flex" style="justify-content:flex-end;gap:6px;align-items:center">
@@ -88,13 +87,13 @@
     <span class="muted" style="font-size:12px">▸</span> Скрытые ({{ hidden|length }})
   </summary>
   <table class="table" style="margin-top:12px">
-    <thead><tr><th>Контейнер</th><th>Образ</th><th>Статус</th><th>Проект</th><th></th></tr></thead>
+    <thead><tr><th>Контейнер</th><th>Образ</th><th>Статус</th><th>Запущен</th><th>Порты</th><th>Проект</th><th></th></tr></thead>
     <tbody>
     {% for c in hidden %}
       <tr>
         <td><strong>{{ c.name }}</strong><div class="muted mono">{{ c.container_id_short }}</div></td>
         <td class="muted">{{ c.image }}</td>
-        <td>{% if c.status == 'running' %}<span class="badge ok dot">{{ c.status }}</span>{% else %}<span class="badge warn dot">{{ c.status }}</span>{% endif %}</td>
+        {{ container_row_cells(c, show_cpu=false) }}
         <td class="muted">{{ project_names.get(c.project_id, '—') }}</td>
         <td style="text-align:right">
           <form method="post" action="/containers/unhide" onsubmit="return confirm('Показать контейнер «{{ c.name }}»?')">

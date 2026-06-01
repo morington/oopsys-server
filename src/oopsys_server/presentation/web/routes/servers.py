@@ -10,6 +10,7 @@ from oopsys_server.infrastructure.persistence.repositories import (
     MetricsRepository,
 )
 from oopsys_server.presentation.web.agent_names import agent_display_name, agent_labels
+from oopsys_server.presentation.web.container_display import build_container_view
 from oopsys_server.presentation.web.deps import require_account
 from oopsys_server.presentation.web.templating import render
 
@@ -85,7 +86,9 @@ async def server_detail(
             "plugins": {"legend": {"position": "bottom"}},
         },
     }
-    container_rows = await containers.list_for_agents([agent_id])
+    container_rows = [
+        build_container_view(row) for row in await containers.list_for_agents([agent_id])
+    ]
     return render(
         request,
         "server_detail.html",

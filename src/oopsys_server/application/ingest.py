@@ -10,6 +10,7 @@ from oopsys_server.configuration import Configuration, Loggers
 from oopsys_server.domain.enums import AgentStatus, NotificationKind, Severity, Source
 from oopsys_server.domain.envelope import (
     AgentFaultPayload,
+    ContainerSnapshotPayload,
     ContainerStatePayload,
     Envelope,
     ErrorReportPayload,
@@ -206,7 +207,37 @@ class IngestService:
         )
 
     async def _handle_docker(self, envelope: Envelope, account_ids: list[uuid.UUID]) -> None:
-        payload = ContainerStatePayload.model_validate(envelope.payload)
+        raw = envelope.payload
+        if "containers" in raw:
+            snapshot = ContainerSnapshotPayload.model_validate(raw)
+            records = await self._containers.replace_snapshot(envelope.agent_id, snapshot.containers)
+            for account_id in account_ids:
+                for record in records:
+                    if await self._projects.auto_assign(account_id, record):
+                        break
+            if records:
+                for record in records:
+                    await self._hub.publish_many(
+                        account_ids,
+                        "container",
+                        {
+                            "agent_id": envelope.agent_id,
+                            "container_id": record.container_id,
+                            "name": record.name,
+                            "status": record.status,
+                            "cpu_percent": record.cpu_percent,
+                            "mem_percent": record.mem_percent,
+                        },
+                    )
+            else:
+                await self._hub.publish_many(
+                    account_ids,
+                    "container",
+                    {"agent_id": envelope.agent_id, "sync": True},
+                )
+            return
+
+        payload = ContainerStatePayload.model_validate(raw)
         record = await self._containers.upsert(envelope.agent_id, payload)
         for account_id in account_ids:
             if await self._projects.auto_assign(account_id, record):

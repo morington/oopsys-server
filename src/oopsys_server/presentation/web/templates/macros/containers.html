@@ -1,0 +1,13 @@
+{% macro container_status(status, status_label=none) -%}
+  {% set label = status_label or status %}
+  {% if status == 'running' %}<span class="badge ok dot">{{ label }}</span>
+  {%- elif status == 'offline' %}<span class="badge crit dot">{{ label }}</span>
+  {%- else %}<span class="badge warn dot">{{ label }}</span>{% endif %}
+{%- endmacro %}
+
+{% macro container_row_cells(c, show_cpu=true) %}
+  <td>{{ container_status(c.status, c.status_label) }}</td>
+  <td class="muted">{{ c.started_label }}<div class="sub">{{ c.uptime_label }}</div></td>
+  <td class="mono" style="font-size:12px">{{ c.ports_label }}</td>
+  {% if show_cpu %}<td>{{ c.cpu_label }}</td>{% endif %}
+{% endmacro %}
