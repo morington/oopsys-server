@@ -11,7 +11,7 @@ from oopsys_server.infrastructure.persistence.repositories import (
     ContainerRepository,
     ProjectRepository,
 )
-from oopsys_server.presentation.web.container_display import build_container_view
+from oopsys_server.presentation.web.container_display import build_container_view, group_assigned_by_project
 from oopsys_server.presentation.web.deps import require_account
 from oopsys_server.presentation.web.templating import render
 
@@ -46,6 +46,7 @@ async def containers_page(
         {
             "active": "containers",
             "assigned": assigned,
+            "assigned_projects": group_assigned_by_project(assigned, project_names),
             "unassigned": unassigned,
             "hidden": hidden,
             "projects": project_rows,

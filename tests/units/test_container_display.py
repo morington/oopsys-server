@@ -1,10 +1,11 @@
 from datetime import UTC, datetime, timedelta
+import uuid
 
 from oopsys_server.presentation.web.container_display import (
     build_container_view,
     format_ports,
-    format_started_at,
     format_uptime,
+    group_assigned_by_project,
 )
 
 
@@ -44,3 +45,22 @@ def test_build_container_view_includes_runtime_fields() -> None:
     assert view["started_label"] == "01.06 19:12"
     assert view["ports_label"] == "8080→80/tcp"
     assert view["status_label"] == "running"
+
+
+def test_group_assigned_by_project_collapses_duplicate_names() -> None:
+    pid = uuid.uuid4()
+    names = {pid: "prod"}
+    assigned = [
+        {"project_id": pid, "name": "web", "container_id": "a"},
+        {"project_id": pid, "name": "web", "container_id": "b"},
+        {"project_id": pid, "name": "api", "container_id": "c"},
+    ]
+    projects = group_assigned_by_project(assigned, names)
+    assert len(projects) == 1
+    groups = projects[0]["groups"]
+    assert len(groups) == 2
+    web = next(g for g in groups if g["name"] == "web")
+    api = next(g for g in groups if g["name"] == "api")
+    assert web["collapsible"] is True
+    assert len(web["containers"]) == 2
+    assert api["collapsible"] is False

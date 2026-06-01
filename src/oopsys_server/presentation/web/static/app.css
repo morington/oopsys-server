@@ -145,6 +145,28 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 }
 .bot-notify-settings summary:hover { color: var(--text); }
 
+.container-name-group {
+  margin: 4px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+}
+.container-name-group summary {
+  cursor: pointer;
+  font-size: 13px;
+  user-select: none;
+  list-style: none;
+}
+.container-name-group summary::-webkit-details-marker { display: none; }
+.container-name-group summary::before {
+  content: "▸ ";
+  color: var(--text-faint);
+}
+.container-name-group[open] summary::before { content: "▾ "; }
+.nested-container-table { margin-top: 10px; }
+.nested-container-table thead th { font-size: 11px; }
+
 /* Notifications toast */
 #toasts { position: fixed; right: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 10px; z-index: 50; max-width: 360px; }
 .toast { background: var(--bg); border: 1px solid var(--border-strong); border-left: 3px solid var(--accent); border-radius: var(--radius-sm); box-shadow: 0 4px 16px rgba(16,24,40,0.12); padding: 12px 14px; animation: slidein 160ms ease; }

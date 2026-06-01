@@ -1,3 +1,9 @@
+"""Display helpers for container rows in the web UI."""
+
+from __future__ import annotations
+
+import uuid
+from collections import defaultdict
 from datetime import UTC, datetime
 
 from oopsys_server.infrastructure.persistence.base import utc_now
@@ -90,3 +96,43 @@ def build_container_view(record: ContainerStateRecord) -> dict[str, object]:
         "project_id": record.project_id,
         "hidden": record.hidden,
     }
+
+
+def group_assigned_by_project(
+    assigned: list[dict[str, object]],
+    project_names: dict[uuid.UUID, str],
+) -> list[dict[str, object]]:
+    """Group assigned containers by project, then by name when duplicates exist."""
+    by_project: dict[uuid.UUID, list[dict[str, object]]] = defaultdict(list)
+    for container in assigned:
+        project_id = container.get("project_id")
+        if isinstance(project_id, uuid.UUID):
+            by_project[project_id].append(container)
+
+    projects: list[dict[str, object]] = []
+    for project_id in sorted(by_project, key=lambda pid: project_names.get(pid, "").lower()):
+        containers = by_project[project_id]
+        by_name: dict[str, list[dict[str, object]]] = defaultdict(list)
+        for container in containers:
+            by_name[str(container.get("name") or "")].append(container)
+
+        groups: list[dict[str, object]] = []
+        for name, items in sorted(by_name.items(), key=lambda pair: pair[0].lower()):
+            ordered = sorted(items, key=lambda item: str(item.get("container_id") or ""))
+            groups.append(
+                {
+                    "name": name,
+                    "collapsible": len(ordered) > 1,
+                    "containers": ordered,
+                }
+            )
+
+        projects.append(
+            {
+                "project_id": project_id,
+                "project_name": project_names.get(project_id, "—"),
+                "container_count": len(containers),
+                "groups": groups,
+            }
+        )
+    return projects
