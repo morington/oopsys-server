@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}{{ agent.name or agent.agent_id[:8] }}{% endblock %}
-{% block heading %}Сервер · {{ agent.name or agent.agent_id[:8] }}{% endblock %}
+{% block title %}{{ display_name }}{% endblock %}
+{% block heading %}Сервер · {{ display_name }}{% endblock %}
 {% block content %}
 <div class="flex between">
   <a class="btn sm" href="/servers">← Все серверы</a>

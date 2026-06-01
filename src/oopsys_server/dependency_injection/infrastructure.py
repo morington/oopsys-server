@@ -25,9 +25,20 @@ class InfrastructureProvider(Provider):
         return AgentHealthClient(timeout=configuration.liveness.poll_timeout)
 
     @provide
-    def self_error_reporter(self, session_factory: async_sessionmaker[AsyncSession]) -> SelfErrorReporter:
-        return SelfErrorReporter(session_factory)
+    def self_error_reporter(
+        self,
+        session_factory: async_sessionmaker[AsyncSession],
+        gateway: NotificationGateway,
+        hub: RealtimeHub,
+    ) -> SelfErrorReporter:
+        return SelfErrorReporter(session_factory, gateway, hub)
 
     @provide
-    def liveness_monitor(self, configuration: Configuration, session_factory: async_sessionmaker[AsyncSession], gateway: NotificationGateway, hub: RealtimeHub) -> LivenessMonitor:
+    def liveness_monitor(
+        self,
+        configuration: Configuration,
+        session_factory: async_sessionmaker[AsyncSession],
+        gateway: NotificationGateway,
+        hub: RealtimeHub,
+    ) -> LivenessMonitor:
         return LivenessMonitor(configuration=configuration, session_factory=session_factory, gateway=gateway, hub=hub)

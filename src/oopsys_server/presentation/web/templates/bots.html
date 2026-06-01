@@ -16,6 +16,7 @@
 {% if bots %}
 <div class="grid cols-2">
   {% for b in bots %}
+  {% set settings = bot_settings.get(b.id, {}) %}
   <div class="card">
     <div class="flex between">
       <strong>{% if b.bot_username %}@{{ b.bot_username }}{% else %}Бот{% endif %}</strong>
@@ -33,6 +34,22 @@
     {% else %}
     <div class="sub" style="margin-top:10px">Чат: <span class="mono">{{ b.chat_id }}</span></div>
     {% endif %}
+
+    <div class="section-title" style="margin:14px 0 8px">Уведомления в Telegram</div>
+    <form method="post" action="/bots/{{ b.id }}/settings">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <div class="grid" style="gap:8px">
+        {% for key, label in notify_labels.items() %}
+        <label class="flex" style="gap:8px;align-items:center;font-size:13px">
+          <input type="hidden" name="notify_{{ key }}" value="0" />
+          <input type="checkbox" name="notify_{{ key }}" value="1" style="width:auto" {% if settings.get(key, true) %}checked{% endif %} />
+          <span>{{ label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <button class="btn sm" type="submit" style="margin-top:10px">Сохранить</button>
+    </form>
+
     <form method="post" action="/bots/{{ b.id }}/delete" style="margin-top:12px" onsubmit="return confirm('Удалить бота?')">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
       <button class="btn sm danger" type="submit">Удалить</button>

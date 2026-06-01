@@ -9,11 +9,12 @@ from oopsys_server.configuration.config import NatsModel
 
 logger = getLogger(Loggers.notifier.name)
 
+
 def notify_subject(prefix: str, account_id: str) -> str:
     return f"{prefix}.notify.{account_id}"
 
-class NotificationGateway:
 
+class NotificationGateway:
     def __init__(self, config: NatsModel) -> None:
         self._config = config
         self._broker: NatsBroker | None = None
@@ -47,6 +48,7 @@ class NotificationGateway:
 
     async def publish(self, account_id: str, payload: dict[str, Any]) -> bool:
         if self._broker is None or not self._connected:
+            await logger.awarning("nats publish skipped", account_id=account_id, reason="not connected")
             return False
         subject = notify_subject(self._config.subject_prefix, account_id)
         try:

@@ -3,6 +3,7 @@ import uuid
 from aiogram import Bot
 
 from oopsys_bot.registry import BotEntry, BotRegistry
+from oopsys_server.application.bot_notify import merge_notify_kinds
 from oopsys_server.domain.enums import BotStatus
 from oopsys_server.infrastructure.security import TokenCipher
 
@@ -17,12 +18,14 @@ def test_shared_token_delivers_to_each_account() -> None:
     account_a = uuid.uuid4()
     account_b = uuid.uuid4()
     registry.clients[token] = Bot(token=token)
+    settings = merge_notify_kinds({})
     registry.entries[uuid.uuid4()] = BotEntry(
         db_id=uuid.uuid4(),
         account_id=account_a,
         token=token,
         chat_id="111",
         status=BotStatus.LINKED,
+        notify_kinds=settings,
     )
     registry.entries[uuid.uuid4()] = BotEntry(
         db_id=uuid.uuid4(),
@@ -30,6 +33,7 @@ def test_shared_token_delivers_to_each_account() -> None:
         token=token,
         chat_id="222",
         status=BotStatus.LINKED,
+        notify_kinds=settings,
     )
 
     a_entries = registry.entries_for_account(account_a)
@@ -52,6 +56,7 @@ def test_pending_token_is_shared_across_accounts() -> None:
         token=token,
         chat_id=None,
         status=BotStatus.PENDING,
+        notify_kinds=merge_notify_kinds({}),
     )
     registry.entries[uuid.uuid4()] = BotEntry(
         db_id=uuid.uuid4(),
@@ -59,6 +64,7 @@ def test_pending_token_is_shared_across_accounts() -> None:
         token=token,
         chat_id="999",
         status=BotStatus.LINKED,
+        notify_kinds=merge_notify_kinds({}),
     )
 
     assert registry.pending_tokens() == frozenset({token})

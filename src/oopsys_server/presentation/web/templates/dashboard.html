@@ -17,7 +17,7 @@
       {% for c in server_cards %}
       <div class="card" hx-boost="true">
         <div class="flex between">
-          <a href="/servers/{{ c.agent.agent_id }}"><strong>{{ c.agent.name or c.agent.agent_id[:8] }}</strong></a>
+          <a href="/servers/{{ c.agent.agent_id }}"><strong>{{ c.display_name }}</strong></a>
           {% if c.agent.status.value == 'online' %}<span class="badge ok dot">online</span>{% else %}<span class="badge crit dot">down</span>{% endif %}
         </div>
         {% if c.latest %}
@@ -33,7 +33,7 @@
   <div>
     <div class="section-title">Последние уведомления</div>
     {% if notifications %}
-    <div class="card" style="padding:0">
+    <div class="card scroll-panel">
       <table class="table" style="border:none">
         <tbody>
         {% for n in notifications %}
@@ -50,7 +50,7 @@
 
     <div class="section-title">Свежие группы ошибок</div>
     {% if groups %}
-    <div class="card" style="padding:0">
+    <div class="card scroll-panel">
       <table class="table" style="border:none">
         <tbody>
         {% for g in groups %}

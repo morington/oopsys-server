@@ -150,6 +150,9 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .meter.crit > span { background: var(--crit); }
 
 .empty { text-align: center; color: var(--text-faint); padding: 48px 20px; border: 1px dashed var(--border-strong); border-radius: var(--radius); background: var(--bg); }
+.scroll-panel { max-height: min(320px, 42vh); overflow-y: auto; overscroll-behavior: contain; }
+.card.scroll-panel { padding: 0; }
+.scroll-panel .table { border: none; border-radius: 0; }
 .flex { display: flex; align-items: center; gap: 10px; }
 .between { justify-content: space-between; }
 .wrap-gap { display: flex; gap: 8px; flex-wrap: wrap; }

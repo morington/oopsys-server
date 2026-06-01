@@ -38,6 +38,60 @@
     b.style.display = "inline-flex";
   }
 
+  function showBrowserNotification(data) {
+    if (!window.Notification || Notification.permission !== "granted") return;
+    try {
+      var n = new Notification(data.title || "oopsys", {
+        body: data.body || "",
+        tag: data.id || "oopsys-notification",
+      });
+      n.onclick = function () {
+        window.focus();
+        n.close();
+      };
+    } catch (_) {}
+  }
+
+  function updateBrowserNotifyUi() {
+    var status = document.getElementById("browser-notify-status");
+    var btn = document.getElementById("browser-notify-enable");
+    if (!status || !btn) return;
+    if (!window.Notification) {
+      status.textContent = "Этот браузер не поддерживает уведомления.";
+      btn.disabled = true;
+      return;
+    }
+    if (Notification.permission === "granted") {
+      status.textContent = "Разрешено. Алерты будут приходить в ОС дополнительно к тостам на сайте.";
+      btn.textContent = "Разрешение выдано";
+      btn.disabled = true;
+      btn.classList.remove("primary");
+      return;
+    }
+    if (Notification.permission === "denied") {
+      status.textContent = "Заблокировано. Разрешите уведомления для этого сайта в настройках браузера и обновите страницу.";
+      btn.textContent = "Заблокировано в браузере";
+      btn.disabled = true;
+      btn.classList.remove("primary");
+      return;
+    }
+    status.textContent = "Разрешение ещё не запрошено. Нажмите кнопку — браузер покажет запрос.";
+    btn.textContent = "Разрешить уведомления в браузере";
+    btn.disabled = false;
+    btn.classList.add("primary");
+  }
+
+  function initBrowserNotifySettings() {
+    var btn = document.getElementById("browser-notify-enable");
+    if (!btn || btn.__wired) return;
+    btn.__wired = true;
+    updateBrowserNotifyUi();
+    btn.addEventListener("click", function () {
+      if (!window.Notification) return;
+      Notification.requestPermission().finally(updateBrowserNotifyUi);
+    });
+  }
+
   // Throttled live refresh: re-fetch the current page and swap only #content.
   var REFRESH_MIN_MS = 1500;
   var refreshTimer = null;
@@ -80,6 +134,7 @@
       try {
         var data = JSON.parse(ev.data);
         toast(data);
+        showBrowserNotification(data);
         bumpBadge();
       } catch (_) {}
       scheduleRefresh();
@@ -112,7 +167,11 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     if (document.getElementById("toasts")) connectStream();
+    initBrowserNotifySettings();
     renderCharts();
   });
-  document.body && document.body.addEventListener("htmx:afterSwap", renderCharts);
+  document.body && document.body.addEventListener("htmx:afterSwap", function () {
+    renderCharts();
+    initBrowserNotifySettings();
+  });
 })();

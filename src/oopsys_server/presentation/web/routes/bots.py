@@ -5,12 +5,14 @@ from fastapi import APIRouter, Depends, Form, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import RedirectResponse, Response
 
+from oopsys_server.application.bot_notify import NOTIFY_KIND_LABELS, merge_notify_kinds, notify_kinds_from_form
 from oopsys_server.application.bots import BotService
 from oopsys_server.infrastructure.persistence.models import Account
 from oopsys_server.presentation.web.deps import require_account
 from oopsys_server.presentation.web.templating import render
 
 router = APIRouter(route_class=DishkaRoute, tags=["web-bots"])
+
 
 @router.get("/bots")
 async def bots_page(
@@ -22,16 +24,53 @@ async def bots_page(
     if await bots.ensure_usernames(account.id):
         await session.commit()
     rows = await bots.list_for_account(account.id)
-    return render(request, "bots.html", {"active": "bots", "bots": rows})
+    return render(
+        request,
+        "bots.html",
+        {
+            "active": "bots",
+            "bots": rows,
+            "notify_labels": NOTIFY_KIND_LABELS,
+            "bot_settings": {bot.id: merge_notify_kinds(bot.notify_kinds) for bot in rows},
+        },
+    )
+
 
 @router.post("/bots/add")
-async def add_bot(request: Request, bots: FromDishka[BotService], session: FromDishka[AsyncSession], bot_token: str=Form(...), account: Account=Depends(require_account)) -> Response:
+async def add_bot(
+    request: Request,
+    bots: FromDishka[BotService],
+    session: FromDishka[AsyncSession],
+    bot_token: str = Form(...),
+    account: Account = Depends(require_account),
+) -> Response:
     await bots.register(account.id, bot_token.strip())
     await session.commit()
     return RedirectResponse("/bots", status_code=303)
 
+
+@router.post("/bots/{bot_id}/settings")
+async def update_bot_settings(
+    request: Request,
+    bot_id: uuid.UUID,
+    bots: FromDishka[BotService],
+    session: FromDishka[AsyncSession],
+    account: Account = Depends(require_account),
+) -> Response:
+    form = {key: value for key, value in (await request.form()).multi_items() if isinstance(value, str)}
+    if await bots.update_notify_kinds(account.id, bot_id, notify_kinds_from_form(form)):
+        await session.commit()
+    return RedirectResponse("/bots", status_code=303)
+
+
 @router.post("/bots/{bot_id}/delete")
-async def delete_bot(request: Request, bot_id: uuid.UUID, bots: FromDishka[BotService], session: FromDishka[AsyncSession], account: Account=Depends(require_account)) -> Response:
+async def delete_bot(
+    request: Request,
+    bot_id: uuid.UUID,
+    bots: FromDishka[BotService],
+    session: FromDishka[AsyncSession],
+    account: Account = Depends(require_account),
+) -> Response:
     await bots.delete(account.id, bot_id)
     await session.commit()
     return RedirectResponse("/bots", status_code=303)

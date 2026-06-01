@@ -259,7 +259,7 @@ def _projects(scenario: str) -> dict[str, Any]:
         return {"projects": [], "counts": {}, "rules_by_project": {}}
     pid = uuid.uuid4()
     return {
-        "projects": [_ns(id=pid, name="cryptobot", slug="cryptobot")],
+        "projects": [_ns(id=pid, name="cryptobot", slug="cryptobot", notify_bot=True)],
         "counts": {pid: 3},
         "rules_by_project": {
             pid: [
@@ -271,25 +271,32 @@ def _projects(scenario: str) -> dict[str, Any]:
 
 
 def _bots(scenario: str) -> dict[str, Any]:
+    from oopsys_server.application.bot_notify import NOTIFY_KIND_LABELS, merge_notify_kinds
+
     if scenario == "empty":
-        return {"bots": []}
+        return {"bots": [], "notify_labels": NOTIFY_KIND_LABELS, "bot_settings": {}}
+    bots = [
+        _ns(
+            id=uuid.uuid4(),
+            bot_username="my_alerts_bot",
+            status=BotStatus.LINKED,
+            invite_key="abc123",
+            chat_id="123456789",
+            notify_kinds={},
+        ),
+        _ns(
+            id=uuid.uuid4(),
+            bot_username="staging_alerts_bot",
+            status=BotStatus.PENDING,
+            invite_key="invite-xyz-789",
+            chat_id=None,
+            notify_kinds={"agent_recovered": False},
+        ),
+    ]
     return {
-        "bots": [
-            _ns(
-                id=uuid.uuid4(),
-                bot_username="my_alerts_bot",
-                status=BotStatus.LINKED,
-                invite_key="abc123",
-                chat_id="123456789",
-            ),
-            _ns(
-                id=uuid.uuid4(),
-                bot_username="staging_alerts_bot",
-                status=BotStatus.PENDING,
-                invite_key="invite-xyz-789",
-                chat_id=None,
-            ),
-        ]
+        "bots": bots,
+        "notify_labels": NOTIFY_KIND_LABELS,
+        "bot_settings": {bot.id: merge_notify_kinds(bot.notify_kinds) for bot in bots},
     }
 
 

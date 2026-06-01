@@ -193,6 +193,7 @@ class Project(Base):
     account_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(128))
     slug: Mapped[str] = mapped_column(String(128), index=True)
+    notify_bot: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     rules: Mapped[list["ProjectRule"]] = relationship(back_populates="project", cascade="all, delete-orphan")
 
@@ -228,6 +229,7 @@ class Bot(Base):
     invite_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     chat_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     status: Mapped[BotStatus] = mapped_column(EnumValue(BotStatus, 16), default=BotStatus.PENDING)
+    notify_kinds: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 

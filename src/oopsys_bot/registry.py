@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from aiogram import Bot
 from aiogram.client.session.aiohttp import AiohttpSession
 
+from oopsys_server.application.bot_notify import merge_notify_kinds
 from oopsys_server.domain.enums import BotStatus
 from oopsys_server.infrastructure.persistence.engine import standalone_session
 from oopsys_server.infrastructure.persistence.repositories import AccountRepository, BotRepository
@@ -22,6 +23,7 @@ class BotEntry:
     token: str
     chat_id: str | None
     status: BotStatus
+    notify_kinds: dict[str, bool]
 
 
 @dataclass
@@ -61,6 +63,7 @@ class BotRegistry:
                     token=token,
                     chat_id=row.chat_id,
                     status=row.status,
+                    notify_kinds=merge_notify_kinds(row.notify_kinds),
                 )
             for db_id in list(self.entries):
                 if db_id not in live_ids:

@@ -29,6 +29,7 @@ class NotificationKind(str, Enum):
     AGENT_DOWN = "agent_down"
     AGENT_RECOVERED = "agent_recovered"
     AGENT_FAULT = "agent_fault"
+    SERVER_ERROR = "server_error"
 
 
 class BotStatus(str, Enum):

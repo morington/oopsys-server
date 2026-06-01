@@ -63,3 +63,10 @@ class BotService:
 
     def decrypt_token(self, bot: Bot) -> str | None:
         return self._cipher.decrypt(bot.bot_token_encrypted)
+
+    async def update_notify_kinds(self, account_id: uuid.UUID, bot_id: uuid.UUID, kinds: dict[str, bool]) -> bool:
+        bot = await self._bots.get(bot_id)
+        if bot is None or bot.account_id != account_id:
+            return False
+        bot.notify_kinds = kinds
+        return True

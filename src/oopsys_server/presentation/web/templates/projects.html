@@ -22,6 +22,15 @@
     </div>
     <div class="sub" style="margin-top:4px">slug: <span class="mono">{{ p.slug }}</span></div>
 
+    <form method="post" action="/projects/{{ p.id }}/notify-bot" style="margin-top:12px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <input type="hidden" name="notify_bot" value="0" />
+      <label class="flex" style="gap:8px;align-items:center;font-size:13px">
+        <input type="checkbox" name="notify_bot" value="1" style="width:auto" {% if p.notify_bot %}checked{% endif %} onchange="this.form.submit()" />
+        <span>Уведомления в Telegram</span>
+      </label>
+    </form>
+
     <div class="section-title" style="margin:14px 0 8px">Авто-правила</div>
     {% set rules = rules_by_project.get(p.id, []) %}
     {% if rules %}

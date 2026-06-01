@@ -9,6 +9,7 @@ from faststream.nats.annotations import NatsMessage
 from structlog import getLogger
 
 from oopsys_bot.registry import BotRegistry
+from oopsys_server.application.bot_notify import bot_accepts_notification
 from oopsys_server.application.bots import BotService
 from oopsys_server.configuration import Configuration, Loggers
 from oopsys_server.domain.enums import BotStatus
@@ -113,12 +114,48 @@ class BotWorker:
         try:
             account_uuid = uuid.UUID(account_id)
         except ValueError:
+            await logger.awarning("bot notification skipped", account_id=account_id, reason="invalid account id")
             return
+
+        await self._registry.reload()
+        entries = self._registry.entries_for_account(account_uuid)
+        if not entries:
+            await logger.awarning(
+                "bot notification skipped",
+                account_id=account_id,
+                title=body.get("title"),
+                reason="no linked bot for account",
+            )
+            return
+
         text = self._format(body)
-        for entry in self._registry.entries_for_account(account_uuid):
-            with contextlib.suppress(Exception):
+        for entry in entries:
+            if not bot_accepts_notification(entry.notify_kinds, body):
+                await logger.ainfo(
+                    "telegram notification skipped",
+                    account_id=account_id,
+                    chat_id=entry.chat_id,
+                    title=body.get("title"),
+                    reason="disabled in bot settings",
+                )
+                continue
+            try:
                 client = self._registry.client_for(entry.token)
                 await client.send_message(entry.chat_id, text)
+                await logger.ainfo(
+                    "telegram notification sent",
+                    account_id=account_id,
+                    chat_id=entry.chat_id,
+                    title=body.get("title"),
+                )
+            except Exception as exc:
+                await logger.aerror(
+                    "telegram send failed",
+                    account_id=account_id,
+                    chat_id=entry.chat_id,
+                    title=body.get("title"),
+                    reason=str(exc),
+                )
 
     @staticmethod
     def _format(body: dict) -> str:

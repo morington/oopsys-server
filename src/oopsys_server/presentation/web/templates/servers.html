@@ -7,7 +7,7 @@
   {% for c in cards %}
   <a class="card" href="/servers/{{ c.agent.agent_id }}" style="text-decoration:none;color:inherit">
     <div class="flex between">
-      <strong>{{ c.agent.name or c.agent.agent_id[:8] }}</strong>
+      <strong>{{ c.display_name }}</strong>
       {% if c.agent.status.value == 'online' %}<span class="badge ok dot">online</span>{% else %}<span class="badge crit dot">down</span>{% endif %}
     </div>
     {% if c.latest %}
