@@ -4,7 +4,6 @@ from datetime import UTC, datetime
 import pytest
 from dishka.integrations.fastapi import FastapiProvider
 from httpx import ASGITransport, AsyncClient
-
 from oopsys_server.configuration import Configuration
 from oopsys_server.dependency_injection import build_container
 from oopsys_server.infrastructure.security import generate_token
@@ -31,7 +30,9 @@ async def client():
     configuration = await container.get(Configuration)
     app = create_app(container, configuration)
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test", follow_redirects=False) as c:
+    async with AsyncClient(
+        transport=transport, base_url="http://test", follow_redirects=False
+    ) as c:
         yield c
     await container.close()
 
@@ -39,11 +40,16 @@ async def client():
 async def _make_account(login: str, password: str) -> None:
     from oopsys_server.application.accounts import AccountService
     from oopsys_server.infrastructure.persistence.engine import standalone_session
-    from oopsys_server.infrastructure.persistence.repositories import AccountRepository, SessionRepository
+    from oopsys_server.infrastructure.persistence.repositories import (
+        AccountRepository,
+        SessionRepository,
+    )
     from oopsys_server.infrastructure.security import PasswordHasher
 
     async with standalone_session() as session:
-        service = AccountService(AccountRepository(session), SessionRepository(session), PasswordHasher())
+        service = AccountService(
+            AccountRepository(session), SessionRepository(session), PasswordHasher()
+        )
         await service.create(login=login, password=password)
         await session.commit()
 
@@ -64,14 +70,18 @@ async def test_full_login_bind_ingest_flow(client: AsyncClient) -> None:
     token = _csrf(page.text)
     assert token
 
-    resp = await client.post("/login", data={"csrf_token": token, "login": login, "password": password})
+    resp = await client.post(
+        "/login", data={"csrf_token": token, "login": login, "password": password}
+    )
     assert resp.status_code == 303, resp.text[:300]
     assert client.cookies.get("oopsys_session")
 
     agents_page = await client.get("/agents")
     token = _csrf(agents_page.text)
     raw_token = generate_token()
-    resp = await client.post("/agents/bind", data={"csrf_token": token, "token": raw_token, "label": "ci"})
+    resp = await client.post(
+        "/agents/bind", data={"csrf_token": token, "token": raw_token, "label": "ci"}
+    )
     assert resp.status_code == 303
 
     envelope = {
@@ -89,11 +99,23 @@ async def test_full_login_bind_ingest_flow(client: AsyncClient) -> None:
             "context": {},
         },
     }
-    ok = await client.post("/agents/ingest", json=envelope, headers={"Authorization": f"Bearer {raw_token}"})
+    ok = await client.post(
+        "/agents/ingest",
+        json=envelope,
+        headers={"Authorization": f"Bearer {raw_token}"},
+    )
     assert ok.status_code == 202, ok.text
 
-    bad = await client.post("/agents/ingest", json=envelope, headers={"Authorization": "Bearer nope"})
+    bad = await client.post(
+        "/agents/ingest", json=envelope, headers={"Authorization": "Bearer nope"}
+    )
     assert bad.status_code == 401
+
+    unbound = generate_token()
+    not_bound = await client.post(
+        "/agents/ingest", json=envelope, headers={"Authorization": f"Bearer {unbound}"}
+    )
+    assert not_bound.status_code == 401
 
     errors_page = await client.get("/errors")
     assert errors_page.status_code == 200
@@ -111,8 +133,20 @@ async def test_pages_render_after_login(client: AsyncClient) -> None:
     await _make_account(login, password)
     page = await client.get("/login")
     token = _csrf(page.text)
-    await client.post("/login", data={"csrf_token": token, "login": login, "password": password})
+    await client.post(
+        "/login", data={"csrf_token": token, "login": login, "password": password}
+    )
 
-    for path in ("/", "/agents", "/servers", "/projects", "/errors", "/containers", "/bots", "/system", "/settings"):
+    for path in (
+        "/",
+        "/agents",
+        "/servers",
+        "/projects",
+        "/errors",
+        "/containers",
+        "/bots",
+        "/system",
+        "/settings",
+    ):
         resp = await client.get(path)
         assert resp.status_code == 200, (path, resp.status_code)

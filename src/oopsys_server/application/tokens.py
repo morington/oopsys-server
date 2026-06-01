@@ -16,14 +16,16 @@ class TokenView:
     is_active: bool
     last_seen_at: str | None
 
-class AgentTokenService:
 
+class AgentTokenService:
     def __init__(self, tokens: AgentTokenRepository) -> None:
         self._tokens = tokens
 
     async def authenticate(self, raw_token: str) -> AgentToken | None:
         token = await self._tokens.get_by_hash(hash_token(raw_token))
         if token is None or not token.is_active:
+            return None
+        if not await self._tokens.is_bound_to_account(token.id):
             return None
         token.last_seen_at = utc_now()
         return token
@@ -32,11 +34,25 @@ class AgentTokenService:
         if token.agent_id != agent_id:
             token.agent_id = agent_id
 
-    async def bind(self, account_id: uuid.UUID, raw_token: str, *, label: str | None=None, endpoint_url: str | None=None) -> AgentToken:
+    async def bind(
+        self,
+        account_id: uuid.UUID,
+        raw_token: str,
+        *,
+        label: str | None = None,
+        endpoint_url: str | None = None,
+    ) -> AgentToken:
         token_hash = hash_token(raw_token)
         token = await self._tokens.get_by_hash(token_hash)
         if token is None:
-            token = await self._tokens.add(AgentToken(token_hash=token_hash, label=label, endpoint_url=endpoint_url, is_active=True))
+            token = await self._tokens.add(
+                AgentToken(
+                    token_hash=token_hash,
+                    label=label,
+                    endpoint_url=endpoint_url,
+                    is_active=True,
+                )
+            )
         else:
             if label:
                 token.label = label
@@ -58,4 +74,16 @@ class AgentTokenService:
 
     async def list_for_account(self, account_id: uuid.UUID) -> list[TokenView]:
         tokens = await self._tokens.list_for_account(account_id)
-        return [TokenView(id=token.id, label=token.label, agent_id=token.agent_id, endpoint_url=token.endpoint_url, is_active=token.is_active, last_seen_at=token.last_seen_at.isoformat() if token.last_seen_at else None) for token in tokens]
+        return [
+            TokenView(
+                id=token.id,
+                label=token.label,
+                agent_id=token.agent_id,
+                endpoint_url=token.endpoint_url,
+                is_active=token.is_active,
+                last_seen_at=token.last_seen_at.isoformat()
+                if token.last_seen_at
+                else None,
+            )
+            for token in tokens
+        ]
