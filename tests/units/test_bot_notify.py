@@ -40,6 +40,11 @@ def test_bot_rejects_unassigned_errors_when_disabled() -> None:
     assert bot_accepts_notification(settings, payload) is False
 
 
+def test_bot_accepts_test_kind() -> None:
+    settings = merge_notify_kinds({"agent_down": False})
+    assert bot_accepts_notification(settings, {"kind": "test"}) is True
+
+
 def test_notify_kinds_from_form() -> None:
     kinds = notify_kinds_from_form({"notify_agent_down": "1", "notify_error": "0"})
     assert kinds["agent_down"] is True

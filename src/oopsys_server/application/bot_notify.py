@@ -25,6 +25,8 @@ def merge_notify_kinds(stored: dict[str, Any] | None) -> dict[str, bool]:
 
 def bot_accepts_notification(settings: dict[str, bool], payload: dict[str, Any]) -> bool:
     kind = payload.get("kind", "")
+    if kind == "test":
+        return True
     if kind == NotificationKind.ERROR.value:
         if not settings.get("error", True):
             return False

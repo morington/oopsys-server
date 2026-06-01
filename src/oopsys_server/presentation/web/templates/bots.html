@@ -2,6 +2,13 @@
 {% block title %}Боты{% endblock %}
 {% block heading %}Боты{% endblock %}
 {% block content %}
+{% if flash_message %}
+<div class="alert {{ flash_level }}">
+  {{ flash_message }}
+  {% if flash_detail %}<div style="margin-top:6px;font-size:12px">{{ flash_detail }}</div>{% endif %}
+</div>
+{% endif %}
+
 <div class="card">
   <h3>Добавить бота</h3>
   <p class="sub" style="margin:6px 0 14px">Укажите токен своего Telegram-бота (BotFather). После добавления откройте ссылку для привязки чата.</p>
@@ -33,22 +40,28 @@
     <div class="code-pill" style="display:block;margin-top:6px;padding:8px">{{ b.invite_key }}</div>
     {% else %}
     <div class="sub" style="margin-top:10px">Чат: <span class="mono">{{ b.chat_id }}</span></div>
+    <form method="post" action="/bots/{{ b.id }}/test" style="margin-top:10px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <button class="btn sm primary" type="submit">Проверка сообщений</button>
+    </form>
     {% endif %}
 
-    <div class="section-title" style="margin:14px 0 8px">Уведомления в Telegram</div>
-    <form method="post" action="/bots/{{ b.id }}/settings">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-      <div class="grid" style="gap:8px">
-        {% for key, label in notify_labels.items() %}
-        <label class="flex" style="gap:8px;align-items:center;font-size:13px">
-          <input type="hidden" name="notify_{{ key }}" value="0" />
-          <input type="checkbox" name="notify_{{ key }}" value="1" style="width:auto" {% if settings.get(key, true) %}checked{% endif %} />
-          <span>{{ label }}</span>
-        </label>
-        {% endfor %}
-      </div>
-      <button class="btn sm" type="submit" style="margin-top:10px">Сохранить</button>
-    </form>
+    <details class="bot-notify-settings" style="margin-top:14px">
+      <summary>Настройки уведомлений</summary>
+      <form method="post" action="/bots/{{ b.id }}/settings" style="margin-top:10px">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <div class="grid" style="gap:8px">
+          {% for key, label in notify_labels.items() %}
+          <label class="flex" style="gap:8px;align-items:center;font-size:13px">
+            <input type="hidden" name="notify_{{ key }}" value="0" />
+            <input type="checkbox" name="notify_{{ key }}" value="1" style="width:auto" {% if settings.get(key, true) %}checked{% endif %} />
+            <span>{{ label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <button class="btn sm" type="submit" style="margin-top:10px">Сохранить</button>
+      </form>
+    </details>
 
     <form method="post" action="/bots/{{ b.id }}/delete" style="margin-top:12px" onsubmit="return confirm('Удалить бота?')">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
