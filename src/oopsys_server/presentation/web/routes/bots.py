@@ -13,7 +13,14 @@ from oopsys_server.presentation.web.templating import render
 router = APIRouter(route_class=DishkaRoute, tags=["web-bots"])
 
 @router.get("/bots")
-async def bots_page(request: Request, bots: FromDishka[BotService], account: Account=Depends(require_account)) -> Response:
+async def bots_page(
+    request: Request,
+    bots: FromDishka[BotService],
+    session: FromDishka[AsyncSession],
+    account: Account = Depends(require_account),
+) -> Response:
+    if await bots.ensure_usernames(account.id):
+        await session.commit()
     rows = await bots.list_for_account(account.id)
     return render(request, "bots.html", {"active": "bots", "bots": rows})
 

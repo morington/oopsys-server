@@ -4,7 +4,7 @@
 {% block content %}
 <div class="card">
   <h3>Добавить бота</h3>
-  <p class="sub" style="margin:6px 0 14px">Укажите токен своего Telegram-бота (BotFather). После добавления появится команда для привязки чата.</p>
+  <p class="sub" style="margin:6px 0 14px">Укажите токен своего Telegram-бота (BotFather). После добавления откройте ссылку для привязки чата.</p>
   <form method="post" action="/bots/add" class="form-row">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
     <div class="field" style="flex:2"><label>Bot token</label><input name="bot_token" type="password" autocomplete="off" placeholder="123456:ABC-..." required /></div>
@@ -18,12 +18,18 @@
   {% for b in bots %}
   <div class="card">
     <div class="flex between">
-      <strong>{{ b.bot_username or 'Бот' }}</strong>
+      <strong>{% if b.bot_username %}@{{ b.bot_username }}{% else %}Бот{% endif %}</strong>
       {% if b.status.value == 'linked' %}<span class="badge ok dot">привязан</span>{% else %}<span class="badge warn dot">ожидает</span>{% endif %}
     </div>
     {% if b.status.value != 'linked' %}
-    <div class="sub" style="margin-top:10px">Откройте своего бота в Telegram и отправьте:</div>
-    <div class="code-pill" style="display:block;margin-top:6px;padding:8px">/start {{ b.invite_key }}</div>
+    {% if b.bot_username %}
+    <div class="sub" style="margin-top:10px">Нажмите ссылку — Telegram откроет бота и подставит код:</div>
+    <a class="btn sm primary" style="display:inline-block;margin-top:8px" href="https://t.me/{{ b.bot_username }}?start={{ b.invite_key }}" target="_blank" rel="noopener">Открыть @{{ b.bot_username }}</a>
+    <div class="sub" style="margin-top:12px">Или отправьте боту <span class="mono">/start</span>, затем код:</div>
+    {% else %}
+    <div class="sub" style="margin-top:10px">Откройте бота в Telegram, отправьте <span class="mono">/start</span>, затем код:</div>
+    {% endif %}
+    <div class="code-pill" style="display:block;margin-top:6px;padding:8px">{{ b.invite_key }}</div>
     {% else %}
     <div class="sub" style="margin-top:10px">Чат: <span class="mono">{{ b.chat_id }}</span></div>
     {% endif %}

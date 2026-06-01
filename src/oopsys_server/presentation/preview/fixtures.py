@@ -277,13 +277,17 @@ def _bots(scenario: str) -> dict[str, Any]:
         "bots": [
             _ns(
                 id=uuid.uuid4(),
-                bot_username="@my_alerts_bot",
+                bot_username="my_alerts_bot",
                 status=BotStatus.LINKED,
                 invite_key="abc123",
                 chat_id="123456789",
             ),
             _ns(
-                id=uuid.uuid4(), bot_username=None, status=BotStatus.PENDING, invite_key="invite-xyz-789", chat_id=None
+                id=uuid.uuid4(),
+                bot_username="staging_alerts_bot",
+                status=BotStatus.PENDING,
+                invite_key="invite-xyz-789",
+                chat_id=None,
             ),
         ]
     }
