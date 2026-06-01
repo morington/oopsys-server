@@ -42,6 +42,7 @@ def _container_view(record: ContainerStateRecord) -> dict[str, object]:
         "status": record.status or "unknown",
         "cpu_label": _cpu_label(record.cpu_percent),
         "project_id": record.project_id,
+        "hidden": record.hidden,
     }
 
 
@@ -58,8 +59,10 @@ async def containers_page(
     project_rows = await projects.list_for_account(account.id)
     project_names = {p.id: p.name for p in project_rows}
     views = [_container_view(r) for r in rows]
-    assigned = [v for v in views if v["project_id"] in project_names]
-    unassigned = [v for v in views if v["project_id"] not in project_names]
+    visible = [v for v in views if not v["hidden"]]
+    hidden = [v for v in views if v["hidden"]]
+    assigned = [v for v in visible if v["project_id"] in project_names]
+    unassigned = [v for v in visible if v["project_id"] not in project_names]
     return render(
         request,
         "containers.html",
@@ -67,6 +70,7 @@ async def containers_page(
             "active": "containers",
             "assigned": assigned,
             "unassigned": unassigned,
+            "hidden": hidden,
             "projects": project_rows,
             "project_names": project_names,
         },
@@ -87,5 +91,35 @@ async def assign(
     if agent_id in await _agent_ids(tokens, account):
         target = uuid.UUID(project_id) if project_id else None
         await containers.assign_project(agent_id, container_id, target)
+        await session.commit()
+    return RedirectResponse("/containers", status_code=303)
+
+
+@router.post("/containers/hide")
+async def hide(
+    tokens: FromDishka[AgentTokenRepository],
+    containers: FromDishka[ContainerRepository],
+    session: FromDishka[AsyncSession],
+    agent_id: str = Form(...),
+    container_id: str = Form(...),
+    account: Account = Depends(require_account),
+) -> Response:
+    if agent_id in await _agent_ids(tokens, account):
+        await containers.set_hidden(agent_id, container_id, True)
+        await session.commit()
+    return RedirectResponse("/containers", status_code=303)
+
+
+@router.post("/containers/unhide")
+async def unhide(
+    tokens: FromDishka[AgentTokenRepository],
+    containers: FromDishka[ContainerRepository],
+    session: FromDishka[AsyncSession],
+    agent_id: str = Form(...),
+    container_id: str = Form(...),
+    account: Account = Depends(require_account),
+) -> Response:
+    if agent_id in await _agent_ids(tokens, account):
+        await containers.set_hidden(agent_id, container_id, False)
         await session.commit()
     return RedirectResponse("/containers", status_code=303)

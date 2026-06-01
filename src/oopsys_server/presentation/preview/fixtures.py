@@ -72,7 +72,9 @@ def _group(
     )
 
 
-def _container(name: str, image: str, status: str = "running", project_id: uuid.UUID | None = None) -> SimpleNamespace:
+def _container(
+    name: str, image: str, status: str = "running", project_id: uuid.UUID | None = None, *, hidden: bool = False
+) -> SimpleNamespace:
     cid = uuid.uuid4().hex
     return _ns(
         agent_id=str(uuid.uuid4()),
@@ -85,6 +87,7 @@ def _container(name: str, image: str, status: str = "running", project_id: uuid.
         mem_percent=22.1,
         restarts=0,
         project_id=project_id,
+        hidden=hidden,
     )
 
 
@@ -235,10 +238,17 @@ def _containers(scenario: str) -> dict[str, Any]:
     pid = uuid.uuid4()
     projects = [_ns(id=pid, name="cryptobot", slug="cryptobot")]
     if scenario == "empty":
-        return {"assigned": [], "unassigned": [], "projects": projects, "project_names": {pid: "cryptobot"}}
+        return {
+            "assigned": [],
+            "unassigned": [],
+            "hidden": [],
+            "projects": projects,
+            "project_names": {pid: "cryptobot"},
+        }
     return {
         "assigned": [_container("bot", "cryptobot:latest", project_id=pid)],
         "unassigned": [_container("redis", "redis:7"), _container("nginx", "nginx:1.27")],
+        "hidden": [_container("sidecar", "busybox:latest", hidden=True)],
         "projects": projects,
         "project_names": {pid: "cryptobot"},
     }

@@ -52,11 +52,24 @@ docker compose up -d --build
 
 | Service | Role |
 |---------|------|
+| `postgres-migration` | one-shot Alembic `upgrade head` before app services start |
 | `server` | FastAPI app (internal) |
 | `nginx` | reverse proxy; Certbot inside when `OOPSYS_PUBLIC_IP` is set |
 | `postgres` | database |
 | `nats` | JetStream |
 | `bot-worker` | Telegram |
+
+On `docker compose up`, the `postgres-migration` container runs once (`restart: "no"`), applies migrations, exits; `server` and `bot-worker` start only after it completes successfully. Manual migration in Docker:
+
+```bash
+docker compose run --rm postgres-migration
+```
+
+Local dev without Docker:
+
+```bash
+uv run oopsys-server migrate
+```
 
 ```bash
 docker compose ps

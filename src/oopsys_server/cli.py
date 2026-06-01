@@ -14,8 +14,17 @@ from oopsys_server.infrastructure.persistence.repositories import (
 )
 from oopsys_server.infrastructure.security import PasswordHasher
 
-_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+def _project_root() -> Path:
+    for path in (*Path(__file__).resolve().parents, Path.cwd()):
+        if (path / "pyproject.toml").exists():
+            return path
+    return Path(__file__).resolve().parents[2]
+
+
+_PROJECT_ROOT = _project_root()
 _MIGRATIONS = Path(__file__).resolve().parent / "infrastructure" / "persistence" / "migrations"
+
 
 async def _account_create(login: str | None, password: str | None) -> int:
     async with standalone_session() as session:
@@ -31,6 +40,7 @@ async def _account_create(login: str | None, password: str | None) -> int:
         print(f"  password: {created.password}")
         return 0
 
+
 async def _account_list() -> int:
     async with standalone_session() as session:
         accounts = await AccountRepository(session).list_all()
@@ -41,6 +51,7 @@ async def _account_list() -> int:
             flag = " (must change password)" if acc.must_change_password else ""
             print(f"  {acc.login}  [{acc.id}]  active={acc.is_active}{flag}")
         return 0
+
 
 async def _account_reset(login: str, password: str | None) -> int:
     async with standalone_session() as session:
@@ -53,6 +64,7 @@ async def _account_reset(login: str, password: str | None) -> int:
         print(f"Password reset for '{login}' (shown once):")
         print(f"  password: {new_password}")
         return 0
+
 
 async def _token_list() -> int:
     async with standalone_session() as session:
@@ -68,6 +80,7 @@ async def _token_list() -> int:
             print(f"        active={token.is_active} last_seen={seen} accounts=[{logins}]")
         return 0
 
+
 async def _token_revoke(token_id: str) -> int:
     async with standalone_session() as session:
         service = AgentTokenService(AgentTokenRepository(session))
@@ -75,6 +88,7 @@ async def _token_revoke(token_id: str) -> int:
         await session.commit()
         print("token revoked" if ok else "token not found")
         return 0 if ok else 1
+
 
 async def _bot_list() -> int:
     async with standalone_session() as session:
@@ -89,24 +103,32 @@ async def _bot_list() -> int:
             print("no bots")
         return 0
 
+
 def _migrate() -> int:
     from alembic import command
     from alembic.config import Config
+
     cfg = Config()
     cfg.set_main_option("script_location", str(_MIGRATIONS))
     cfg.set_main_option("prepend_sys_path", str(_PROJECT_ROOT))
     command.upgrade(cfg, "head")
+    print("Database migrations applied (alembic upgrade head)")
     return 0
+
 
 def _run() -> int:
     from oopsys_server.main import main
+
     asyncio.run(main())
     return 0
 
+
 def _preview() -> int:
     from oopsys_server.presentation.preview.run import run_preview
+
     run_preview()
     return 0
+
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="oopsys-server", description="oopsys monitoring server")
@@ -133,7 +155,8 @@ def _build_parser() -> argparse.ArgumentParser:
     sub.add_parser("preview", help="run the frontend preview (DEV only)")
     return parser
 
-def main(argv: list[str] | None=None) -> int:
+
+def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     if args.command == "account":
         if args.account_command == "create":
@@ -156,5 +179,7 @@ def main(argv: list[str] | None=None) -> int:
     if args.command == "preview":
         return _preview()
     return 1
+
+
 if __name__ == "__main__":
     raise SystemExit(main())

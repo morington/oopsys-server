@@ -19,16 +19,24 @@
       <td>{{ c.cpu_label }}</td>
       <td class="muted">{{ project_names.get(c.project_id, '—') }}</td>
       <td style="text-align:right">
-        <form method="post" action="/containers/assign" class="flex" style="justify-content:flex-end;gap:6px">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-          <input type="hidden" name="agent_id" value="{{ c.agent_id }}" />
-          <input type="hidden" name="container_id" value="{{ c.container_id }}" />
-          <select name="project_id" style="width:auto">
-            <option value="">— без проекта —</option>
-            {% for p in projects %}<option value="{{ p.id }}" {% if p.id == c.project_id %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
-          </select>
-          <button class="btn sm" type="submit">OK</button>
-        </form>
+        <div class="flex" style="justify-content:flex-end;gap:6px;align-items:center">
+          <form method="post" action="/containers/assign" class="flex" style="gap:6px">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="agent_id" value="{{ c.agent_id }}" />
+            <input type="hidden" name="container_id" value="{{ c.container_id }}" />
+            <select name="project_id" style="width:auto">
+              <option value="">— без проекта —</option>
+              {% for p in projects %}<option value="{{ p.id }}" {% if p.id == c.project_id %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+            </select>
+            <button class="btn sm" type="submit">OK</button>
+          </form>
+          <form method="post" action="/containers/hide" onsubmit="return confirm('Скрыть контейнер «{{ c.name }}»?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="agent_id" value="{{ c.agent_id }}" />
+            <input type="hidden" name="container_id" value="{{ c.container_id }}" />
+            <button class="btn sm danger" type="submit">Скрыть</button>
+          </form>
+        </div>
       </td>
     </tr>
   {% endfor %}
@@ -49,20 +57,57 @@
       <td>{{ c.cpu_label }}</td>
       <td class="muted">{{ project_names.get(c.project_id, '—') }}</td>
       <td style="text-align:right">
-        <form method="post" action="/containers/assign" class="flex" style="justify-content:flex-end;gap:6px">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-          <input type="hidden" name="agent_id" value="{{ c.agent_id }}" />
-          <input type="hidden" name="container_id" value="{{ c.container_id }}" />
-          <select name="project_id" style="width:auto">
-            <option value="">— без проекта —</option>
-            {% for p in projects %}<option value="{{ p.id }}" {% if p.id == c.project_id %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
-          </select>
-          <button class="btn sm" type="submit">OK</button>
-        </form>
+        <div class="flex" style="justify-content:flex-end;gap:6px;align-items:center">
+          <form method="post" action="/containers/assign" class="flex" style="gap:6px">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="agent_id" value="{{ c.agent_id }}" />
+            <input type="hidden" name="container_id" value="{{ c.container_id }}" />
+            <select name="project_id" style="width:auto">
+              <option value="">— без проекта —</option>
+              {% for p in projects %}<option value="{{ p.id }}" {% if p.id == c.project_id %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+            </select>
+            <button class="btn sm" type="submit">OK</button>
+          </form>
+          <form method="post" action="/containers/hide" onsubmit="return confirm('Скрыть контейнер «{{ c.name }}»?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="agent_id" value="{{ c.agent_id }}" />
+            <input type="hidden" name="container_id" value="{{ c.container_id }}" />
+            <button class="btn sm danger" type="submit">Скрыть</button>
+          </form>
+        </div>
       </td>
     </tr>
   {% endfor %}
   </tbody>
 </table>
 {% else %}<div class="empty">Пока нет контейнеров в проектах</div>{% endif %}
+
+{% if hidden %}
+<details class="hidden-containers" style="margin-top:24px">
+  <summary class="section-title" style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px">
+    <span class="muted" style="font-size:12px">▸</span> Скрытые ({{ hidden|length }})
+  </summary>
+  <table class="table" style="margin-top:12px">
+    <thead><tr><th>Контейнер</th><th>Образ</th><th>Статус</th><th>Проект</th><th></th></tr></thead>
+    <tbody>
+    {% for c in hidden %}
+      <tr>
+        <td><strong>{{ c.name }}</strong><div class="muted mono">{{ c.container_id_short }}</div></td>
+        <td class="muted">{{ c.image }}</td>
+        <td>{% if c.status == 'running' %}<span class="badge ok dot">{{ c.status }}</span>{% else %}<span class="badge warn dot">{{ c.status }}</span>{% endif %}</td>
+        <td class="muted">{{ project_names.get(c.project_id, '—') }}</td>
+        <td style="text-align:right">
+          <form method="post" action="/containers/unhide" onsubmit="return confirm('Показать контейнер «{{ c.name }}»?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="agent_id" value="{{ c.agent_id }}" />
+            <input type="hidden" name="container_id" value="{{ c.container_id }}" />
+            <button class="btn sm" type="submit">Показать</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</details>
+{% endif %}
 {% endblock %}

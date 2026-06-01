@@ -23,10 +23,25 @@ services:
       - natsdata:/data
     networks: [oopsys]
 
+  postgres-migration:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.postgresql.migration
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      POSTGRESQL__HOST: postgres
+    networks: [oopsys]
+    restart: "no"
+
   server:
     build: .
     restart: unless-stopped
     depends_on:
+      postgres-migration:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       nats:
@@ -42,6 +57,8 @@ services:
     command: ["bot"]
     restart: unless-stopped
     depends_on:
+      postgres-migration:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       nats:
