@@ -30,7 +30,7 @@ async def run_bot_test(
         {
             "kind": "test",
             "severity": "error",
-            "title": "Проверка уведомлений oopsys",
+            "title": "Проверка уведомлений",
             "body": "Если вы видите это — NATS и bot-worker работают.",
         },
     )

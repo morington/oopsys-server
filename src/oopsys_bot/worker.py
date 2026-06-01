@@ -9,6 +9,7 @@ from faststream.nats import JStream, NatsBroker
 from faststream.nats.annotations import NatsMessage
 from structlog import getLogger
 
+from oopsys_bot.notify_format import TELEGRAM_PARSE_MODE, format_telegram_notification
 from oopsys_bot.registry import BotRegistry
 from oopsys_server.application.bot_notify import bot_accepts_notification
 from oopsys_server.application.bots import BotService
@@ -23,11 +24,12 @@ logger = getLogger(Loggers.notifier.name)
 _POLL_RECONCILE_SECONDS = 60
 
 _LINK_PROMPT = (
-    "Отправьте код привязки из раздела «Боты» в личном кабинете oopsys.\n"
+    "<b>🔗 Привязка к oopsys</b>\n"
+    "Откройте раздел «Боты» в личном кабинете и отправьте код сюда.\n"
     "Можно просто вставить код следующим сообщением."
 )
-_LINKED_ACK = "Бот уже подключён. Уведомления oopsys приходят в этот чат автоматически."
-_LINK_OK = "Готово! Уведомления oopsys будут приходить в этот чат."
+_LINKED_ACK = "✅ Бот уже подключён — уведомления приходят в этот чат."
+_LINK_OK = "✅ <b>Готово!</b> Уведомления oopsys будут приходить сюда."
 
 
 class BotWorker:
@@ -52,9 +54,9 @@ class BotWorker:
                 return
             chat_id = str(message.chat.id)
             if self._registry.linked_entry_for_chat(message.bot, chat_id):
-                await message.answer(_LINKED_ACK)
+                await message.answer(_LINKED_ACK, parse_mode=TELEGRAM_PARSE_MODE)
             elif self._registry.has_pending_for_bot(message.bot):
-                await message.answer(_LINK_PROMPT)
+                await message.answer(_LINK_PROMPT, parse_mode=TELEGRAM_PARSE_MODE)
 
         @self._dispatcher.message()
         async def on_message(message: Message) -> None:
@@ -104,20 +106,23 @@ class BotWorker:
             service = BotService(repo, self._registry.cipher)
             row = await repo.get_by_invite(invite_key)
             if row is None:
-                await message.answer("Неверный код привязки. Скопируйте код из раздела «Боты» в личном кабинете.")
+                await message.answer(
+                    "❌ Неверный код. Скопируйте его в разделе «Боты» в личном кабинете.",
+                    parse_mode=TELEGRAM_PARSE_MODE,
+                )
                 return
             row_token = service.decrypt_token(row)
             if row_token != token:
-                await message.answer("Этот код не подходит к этому боту.")
+                await message.answer("❌ Этот код не подходит к этому боту.", parse_mode=TELEGRAM_PARSE_MODE)
                 return
             if row.status is BotStatus.LINKED and row.chat_id == chat_id:
-                await message.answer(_LINKED_ACK)
+                await message.answer(_LINKED_ACK, parse_mode=TELEGRAM_PARSE_MODE)
                 return
             username = (await message.bot.me()).username if message.bot else None
             await service.link_by_invite(invite_key, chat_id, bot_username=username)
             await session.commit()
 
-        await message.answer(_LINK_OK)
+        await message.answer(_LINK_OK, parse_mode=TELEGRAM_PARSE_MODE)
         pending = await self._registry.reload()
         await self._restart_polling(pending)
 
@@ -141,7 +146,7 @@ class BotWorker:
             )
             return
 
-        text = self._format(body)
+        text = format_telegram_notification(body)
         for entry in entries:
             if not bot_accepts_notification(entry.notify_kinds, body):
                 await logger.ainfo(
@@ -154,7 +159,7 @@ class BotWorker:
                 continue
             try:
                 client = self._registry.client_for(entry.token)
-                await client.send_message(entry.chat_id, text)
+                await client.send_message(entry.chat_id, text, parse_mode=TELEGRAM_PARSE_MODE)
                 await logger.ainfo(
                     "telegram notification sent",
                     account_id=account_id,
@@ -169,13 +174,6 @@ class BotWorker:
                     title=body.get("title"),
                     reason=str(exc),
                 )
-
-    @staticmethod
-    def _format(body: dict) -> str:
-        severity = body.get("severity", "error").upper()
-        title = body.get("title", "Уведомление")
-        detail = body.get("body", "")
-        return f"[{severity}] {title}\n{detail}".strip()
 
     async def _reconcile_polling(self) -> None:
         while True:
