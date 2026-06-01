@@ -11,7 +11,6 @@ from oopsys_server.application.bot_test import run_bot_test
 from oopsys_server.application.bots import BotService
 from oopsys_server.infrastructure.nats import NotificationGateway
 from oopsys_server.infrastructure.persistence.models import Account
-from oopsys_server.infrastructure.security import TokenCipher
 from oopsys_server.presentation.web.deps import require_account
 from oopsys_server.presentation.web.templating import render
 
@@ -20,16 +19,14 @@ router = APIRouter(route_class=DishkaRoute, tags=["web-bots"])
 _FLASH_MESSAGES: dict[str, tuple[str, str]] = {
     "test_ok": (
         "ok",
-        "Тестовое сообщение отправлено в Telegram. Проверьте чат — должно быть два сообщения "
-        "(прямая отправка и через очередь NATS).",
+        "Тестовое сообщение отправлено в NATS. Проверьте Telegram — его должен доставить bot-worker.",
     ),
     "test_nats_unavailable": (
-        "info",
-        "Прямая отправка в Telegram прошла, но очередь NATS недоступна. "
-        "Автоматические уведомления не дойдут, пока не заработают NATS и bot-worker.",
+        "error",
+        "NATS недоступен — сообщение не попало в очередь. Автоматические уведомления не дойдут, "
+        "пока не заработают NATS и bot-worker.",
     ),
     "test_not_linked": ("error", "Сначала привяжите бота к чату через ссылку или код."),
-    "test_tg_fail": ("error", "Не удалось отправить сообщение в Telegram."),
     "test_forbidden": ("error", "Бот не найден."),
 }
 
@@ -99,13 +96,12 @@ async def test_bot(
     bot_id: uuid.UUID,
     bots: FromDishka[BotService],
     gateway: FromDishka[NotificationGateway],
-    cipher: FromDishka[TokenCipher],
     account: Account = Depends(require_account),
 ) -> Response:
     bot = await bots.get_for_account(account.id, bot_id)
     if bot is None:
         return RedirectResponse("/bots?flash=test_forbidden", status_code=303)
-    result = await run_bot_test(bot, account_id=account.id, cipher=cipher, gateway=gateway)
+    result = await run_bot_test(bot, account_id=account.id, gateway=gateway)
     url = f"/bots?flash={result.flash}"
     if result.detail:
         url = f"{url}&detail={quote(result.detail, safe='')}"

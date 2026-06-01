@@ -56,6 +56,12 @@ class NotificationGateway:
         except Exception as exc:
             await logger.aerror("nats publish failed", subject=subject, reason=str(exc))
             return False
+        await logger.ainfo(
+            "nats notification published",
+            subject=subject,
+            kind=payload.get("kind"),
+            title=payload.get("title"),
+        )
         return True
 
     async def close(self) -> None:

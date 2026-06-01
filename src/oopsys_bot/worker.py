@@ -4,7 +4,8 @@ import contextlib
 from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandObject, CommandStart
 from aiogram.types import Message
-from faststream.nats import NatsBroker, PullSub
+from faststream import AckPolicy
+from faststream.nats import JStream, NatsBroker
 from faststream.nats.annotations import NatsMessage
 from structlog import getLogger
 
@@ -66,16 +67,28 @@ class BotWorker:
                 await self._try_link(message, message.text.strip())
 
         notify_subject = f"{self._cfg.nats.subject_prefix}.notify.>"
+        notify_stream = JStream(
+            name=self._cfg.nats.stream,
+            subjects=[notify_subject],
+            declare=True,
+        )
 
         @self._broker.subscriber(
             notify_subject,
-            stream=self._cfg.nats.stream,
-            durable="oopsys-bot",
-            pull_sub=PullSub(batch_size=10, timeout=5.0),
+            stream=notify_stream,
+            durable="oopsys-bot-notify",
+            ack_policy=AckPolicy.ACK,
+            max_workers=1,
         )
         async def on_notify(body: dict, msg: NatsMessage) -> None:
             subject = msg.raw_message.subject
             account_id = subject.rsplit(".", 1)[-1]
+            await logger.ainfo(
+                "nats notification received",
+                account_id=account_id,
+                kind=body.get("kind"),
+                title=body.get("title"),
+            )
             await self._dispatch_notification(account_id, body)
 
     async def _try_link(self, message: Message, invite_key: str) -> None:
