@@ -38,6 +38,40 @@
     b.style.display = "inline-flex";
   }
 
+  // Throttled live refresh: re-fetch the current page and swap only #content.
+  var REFRESH_MIN_MS = 1500;
+  var refreshTimer = null;
+  var lastRefresh = 0;
+
+  function isEditing() {
+    var el = document.activeElement;
+    var content = document.getElementById("content");
+    if (!el || !content || !content.contains(el)) return false;
+    var tag = (el.tagName || "").toLowerCase();
+    return tag === "input" || tag === "select" || tag === "textarea";
+  }
+
+  function refreshContent() {
+    if (!window.htmx || !document.getElementById("content")) return;
+    if (document.hidden) return;
+    if (isEditing()) { scheduleRefresh(); return; }
+    lastRefresh = Date.now();
+    htmx.ajax("GET", window.location.pathname + window.location.search, {
+      target: "#content",
+      select: "#content",
+      swap: "outerHTML"
+    });
+  }
+
+  function scheduleRefresh() {
+    if (refreshTimer) return;
+    var wait = Math.max(0, REFRESH_MIN_MS - (Date.now() - lastRefresh));
+    refreshTimer = setTimeout(function () {
+      refreshTimer = null;
+      refreshContent();
+    }, wait);
+  }
+
   // Realtime SSE stream (account-scoped).
   function connectStream() {
     if (!window.EventSource) return;
@@ -48,13 +82,16 @@
         toast(data);
         bumpBadge();
       } catch (_) {}
+      scheduleRefresh();
     });
     ["error", "metric", "container", "agent_status"].forEach(function (name) {
-      src.addEventListener(name, function (ev) {
-        document.body.dispatchEvent(new CustomEvent("oopsys:" + name, { detail: tryParse(ev.data) }));
-      });
+      src.addEventListener(name, function () { scheduleRefresh(); });
     });
     src.onerror = function () { /* browser auto-reconnects */ };
+    // Refresh immediately when the tab regains focus (events are skipped while hidden).
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) scheduleRefresh();
+    });
   }
 
   function tryParse(s) { try { return JSON.parse(s); } catch (_) { return {}; } }
