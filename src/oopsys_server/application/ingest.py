@@ -32,6 +32,14 @@ from oopsys_server.infrastructure.realtime import RealtimeHub
 logger = getLogger(Loggers.ingest.name)
 
 
+def _container_name_from_context(context: dict) -> str | None:
+    for key in ("container_name", "container", "docker_container"):
+        value = context.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
 class IngestService:
     def __init__(
         self,
@@ -95,7 +103,7 @@ class IngestService:
         account_ids = [account_id for account_id, _ in account_rows]
         await self._touch_agent(envelope, account_rows)
         if envelope.source is Source.PROJECTS:
-            await self._handle_error(envelope, account_ids)
+            await self._handle_error(envelope, account_rows)
         elif envelope.source is Source.SERVER:
             await self._handle_server(envelope, account_ids)
         elif envelope.source is Source.DOCKER:
@@ -103,7 +111,11 @@ class IngestService:
         elif envelope.source is Source.AGENT:
             await self._handle_fault(envelope, account_ids)
 
-    async def _handle_error(self, envelope: Envelope, account_ids: list[uuid.UUID]) -> None:
+    async def _handle_error(
+        self,
+        envelope: Envelope,
+        account_rows: list[tuple[uuid.UUID, str | None]],
+    ) -> None:
         payload = ErrorReportPayload.model_validate(envelope.payload)
         fingerprint = compute_fingerprint(
             service=payload.service,
@@ -155,7 +167,11 @@ class IngestService:
             renotify_window_seconds=self._cfg.notifications.renotify_window_seconds,
         )
         if notify:
-            for account_id in account_ids:
+            agent = await self._agents.get(envelope.agent_id)
+            agent_name = agent.name if agent else None
+            container_name = _container_name_from_context(payload.context)
+            occurred_at = payload.timestamp.isoformat()
+            for account_id, token_label in account_rows:
                 project_ids = await self._projects.matching_project_ids(account_id, payload.service)
                 project_bot_enabled = await self._projects.project_bot_enabled(account_id, project_ids)
                 ref = {
@@ -164,6 +180,18 @@ class IngestService:
                     "service": payload.service,
                     "project_ids": [str(project_id) for project_id in project_ids],
                 }
+                bot_fields: dict[str, object] = {
+                    "project_ids": ref["project_ids"],
+                    "project_bot_enabled": project_bot_enabled,
+                    "agent_display": resolve_agent_display_name(
+                        token_label=token_label,
+                        agent_name=agent_name,
+                        agent_id=envelope.agent_id,
+                    ),
+                    "occurred_at": occurred_at,
+                }
+                if container_name:
+                    bot_fields["container_name"] = container_name
                 await self._notifications.emit(
                     [account_id],
                     kind=NotificationKind.ERROR,
@@ -171,14 +199,11 @@ class IngestService:
                     title=title,
                     body=f"{payload.service} · {payload.environment}",
                     ref=ref,
-                    bot_fields={
-                        "project_ids": ref["project_ids"],
-                        "project_bot_enabled": project_bot_enabled,
-                    },
+                    bot_fields=bot_fields,
                 )
             await self._errors.mark_notified(group)
+        account_ids = [account_id for account_id, _ in account_rows]
         await self._hub.publish_many(
-            account_ids,
             "error",
             {
                 "group_id": str(group.id),

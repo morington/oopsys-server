@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import re
+from datetime import UTC, datetime
 
 TELEGRAM_PARSE_MODE = "HTML"
 
@@ -19,6 +20,48 @@ def _esc(text: str) -> str:
 
 def _lines(*parts: str) -> str:
     return "\n".join(part for part in parts if part)
+
+
+def _format_occurred_at(value: object) -> str | None:
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        moment = value.astimezone(UTC) if value.tzinfo else value.replace(tzinfo=UTC)
+    else:
+        raw = str(value).strip()
+        if not raw:
+            return None
+        moment = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if moment.tzinfo is None:
+            moment = moment.replace(tzinfo=UTC)
+        else:
+            moment = moment.astimezone(UTC)
+    return moment.strftime("%d.%m %H:%M:%S UTC")
+
+
+def _format_project_error(body: dict) -> str:
+    title = str(body.get("title") or "Ошибка").strip()
+    service_line = str(body.get("body") or "").strip()
+    agent = str(body.get("agent_display") or body.get("ref", {}).get("agent_id") or "").strip()
+    container = str(body.get("container_name") or "").strip()
+    occurred = _format_occurred_at(body.get("occurred_at"))
+    severity = str(body.get("severity") or "error").lower()
+    badge = "🔴" if severity == "critical" else "⚠️"
+
+    lines = [
+        f"<b>{badge} Ошибка проекта</b>",
+        "",
+        f"<code>{_esc(title)}</code>",
+    ]
+    if agent:
+        lines.extend(["", f"Агент: <b>{_esc(agent)}</b>"])
+    if service_line:
+        lines.append(f"Сервис: {_esc(service_line)}")
+    if container:
+        lines.append(f"Контейнер: <code>{_esc(container)}</code>")
+    if occurred:
+        lines.append(f"Время: <i>{_esc(occurred)}</i>")
+    return _lines(*lines)
 
 
 def format_telegram_notification(body: dict) -> str:
@@ -70,11 +113,7 @@ def format_telegram_notification(body: dict) -> str:
         )
 
     if kind == "error":
-        return _lines(
-            "<b>❌ Ошибка проекта</b>",
-            f"<code>{_esc(title)}</code>",
-            f"<i>{_esc(detail)}</i>" if detail else "",
-        )
+        return _format_project_error(body)
 
     severity = str(body.get("severity") or "error").lower()
     badge = "🔴" if severity == "critical" else "⚠️"
