@@ -204,6 +204,7 @@ class IngestService:
             await self._errors.mark_notified(group)
         account_ids = [account_id for account_id, _ in account_rows]
         await self._hub.publish_many(
+            account_ids,
             "error",
             {
                 "group_id": str(group.id),
